@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Android / Gradle
+.gradle/
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+*.iml
+.idea/
+
+# Environment & OS
+.env
+.env.*
+.DS_Store
+Thumbs.db
