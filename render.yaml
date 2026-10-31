@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: sizzlesense-ai-backend
+    runtime: docker
+    rootDir: ai-backend
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
