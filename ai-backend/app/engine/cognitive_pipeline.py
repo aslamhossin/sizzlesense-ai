@@ -65,8 +65,14 @@ class CognitiveCoachingPipeline:
             request.learner_id, request.dish_id, request.attempt_number
         )
 
-        # 2. Check if live Gemini API key is provided
-        api_key = request.gemini_api_key or SETTINGS.env_api_key
+        # 2. Check if live Gemini API key is provided (ignore Swagger's default "string" placeholder)
+        req_key = (
+            request.gemini_api_key
+            if request.gemini_api_key
+            and request.gemini_api_key.strip().lower() != "string"
+            else None
+        )
+        api_key = req_key or SETTINGS.env_api_key
         if api_key:
             try:
                 live_response = await self._call_live_gemini_pipeline(
@@ -165,6 +171,18 @@ class CognitiveCoachingPipeline:
             inferred_states = [
                 "Pan surface crossed 145°C–160°C after moisture evaporation gate cleared.",
                 "Sucrose and amino acids actively undergoing Maillard caramelization.",
+            ]
+        elif cv_metrics.dominant_visual_regime == "TRANSITIONAL_SAUTE":
+            acoustic = (
+                request.acoustic_hint
+                or AcousticSizzleSignature.WET_STEAM_BUBBLE
+            )
+            visual_fact = (
+                f"00:15 - Ambient or transitional pan state observed (luminance {cv_metrics.mean_luminance:.1f}, "
+                f"browning ratio {cv_metrics.maillard_browning_ratio:.2f}, moisture index {cv_metrics.surface_moisture_index:.2f})."
+            )
+            inferred_states = [
+                "Surface has not yet entered active Maillard browning (>140°C); awaiting thermal build-up or moisture clearing."
             ]
         else:
             acoustic = (
@@ -386,16 +404,27 @@ class CognitiveCoachingPipeline:
         prior_session: Optional[CognitiveCoachingResponse],
         api_key: str,
     ) -> CognitiveCoachingResponse:
-        """Calls Google Gemini Frontier API (`gemini-4-argon` / `gemini-3.8-flash`) with structured JSON schema."""
+        """Calls Google Gemini API with the live camera frame and structured JSON output."""
         baseline = self._run_deterministic_pipeline(request, cv_metrics, prior_session)
-        model_id = request.preferred_reasoning_model or SETTINGS.default_reasoning_model
-        url = f"{SETTINGS.gemini_api_base_url}/models/{model_id}:generateContent"
+        preferred = request.preferred_reasoning_model or SETTINGS.default_reasoning_model
+        candidate_models = list(
+            dict.fromkeys(
+                [
+                    preferred,
+                    "gemini-3.8-flash",
+                    "gemini-2.5-flash",
+                    "gemini-2.5-pro",
+                ]
+            )
+        )
 
         system_prompt = (
-            "You are the Applied AI Human Learning Engine for a culinary coaching platform. "
-            "Do NOT give generic recipe timers. Infer the learner's latent mental model, "
-            "select strictly ONE highest-leverage chef principle to teach now, omit secondary issues, "
-            "and ground all coaching in visual, acoustic (sizzle), and olfactory cues."
+            "You are the Applied AI Human Learning Engine for SizzleSense AI. "
+            "Inspect the attached kitchen camera image and the learner's reflection. "
+            "Return ONLY a valid JSON object matching the exact structure of `baseline_reference` below. "
+            "Update `observed_timeline_facts[0].visual_observation`, `inferred_physical_states`, "
+            "`five_core_questions`, and `stage4_sensory_coaching.coaching_message` based on what you actually "
+            "see in the attached camera image while keeping at least 1 item in `deliberately_omitted_issues`."
         )
         user_context = {
             "dish_id": request.dish_id,
@@ -410,7 +439,9 @@ class CognitiveCoachingPipeline:
             "baseline_reference": baseline.model_dump(),
         }
 
-        parts: list[dict] = [{"text": f"{system_prompt}\n\nContext:\n{json.dumps(user_context)}"}]
+        parts: list[dict] = [
+            {"text": f"{system_prompt}\n\nContext & Exact JSON Template:\n{json.dumps(user_context)}"}
+        ]
         if request.keyframe_base64_list:
             clean_b64 = request.keyframe_base64_list[-1].split(",")[-1].strip()
             parts.append(
@@ -429,15 +460,30 @@ class CognitiveCoachingPipeline:
             },
         }
 
-        async with httpx.AsyncClient(timeout=25.0) as client:
-            resp = await client.post(
-                url,
-                headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
-                json=payload,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            text_json = data["candidates"][0]["content"]["parts"][0]["text"]
-            parsed = CognitiveCoachingResponse.model_validate_json(text_json)
-            parsed.reasoning_model_used = f"{model_id} (Live API)"
-            return parsed
+        last_err: Exception | None = None
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for model_id in candidate_models:
+                url = f"{SETTINGS.gemini_api_base_url}/models/{model_id}:generateContent"
+                try:
+                    resp = await client.post(
+                        url,
+                        headers={
+                            "x-goog-api-key": api_key,
+                            "Content-Type": "application/json",
+                        },
+                        json=payload,
+                    )
+                    if resp.status_code != 200:
+                        continue
+                    data = resp.json()
+                    text_json = data["candidates"][0]["content"]["parts"][0]["text"]
+                    parsed = CognitiveCoachingResponse.model_validate_json(text_json)
+                    parsed.reasoning_model_used = f"{model_id} (Live Gemini API)"
+                    return parsed
+                except Exception as exc:
+                    last_err = exc
+                    continue
+
+        if last_err:
+            raise last_err
+        raise RuntimeError("No Gemini model endpoint succeeded.")
