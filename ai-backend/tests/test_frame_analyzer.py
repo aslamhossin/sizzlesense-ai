@@ -15,20 +15,20 @@ from app.vision.frame_analyzer import (
 def test_tapo_rtsp_url_builder_standard_and_substream():
     """Verify official TP-Link Tapo C100 stream1 (1080p) and stream2 (360p) URLs."""
     url_hd = TapoRtspUrlBuilder.build_url(
-        ip_address="192.168.1.50",
+        ip_address="192.168.11.16",
         username="chef",
         password="password123",
         use_substream=False,
     )
-    assert url_hd == "rtsp://chef:password123@192.168.1.50:554/stream1"
+    assert url_hd == "rtsp://chef:password123@192.168.11.16:554/stream1"
 
     url_sub = TapoRtspUrlBuilder.build_url(
-        ip_address="192.168.1.50",
+        ip_address="192.168.11.16",
         username="chef",
         password="password123",
         use_substream=True,
     )
-    assert url_sub == "rtsp://chef:password123@192.168.1.50:554/stream2"
+    assert url_sub == "rtsp://chef:password123@192.168.11.16:554/stream2"
 
 
 def test_tapo_rtsp_url_builder_encodes_special_characters():

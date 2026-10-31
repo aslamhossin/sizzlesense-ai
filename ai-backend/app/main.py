@@ -41,11 +41,24 @@ GLOBAL_EVAL_RUNNER = HumanLearningEvalRunner()
 
 
 class TapoRtspRequest(BaseModel):
-    ip_address: str
+    ip_address: str = "192.168.11.16"
     username: str
     password: str
     use_substream: bool = False
     port: int = 554
+
+
+class TapoLiveAnalyzeRequest(BaseModel):
+    ip_address: str = "192.168.11.16"
+    username: str
+    password: str
+    learner_id: str = "tapo_live_learner"
+    dish_id: str = "sauteed_onions"
+    attempt_number: int = 1
+    learner_reflection: str = (
+        "I am cooking live under the Tapo C100 camera. Please analyze the pan state."
+    )
+    gemini_api_key: str | None = None
 
 
 class TapoRtspResponse(BaseModel):
@@ -169,3 +182,33 @@ async def build_tapo_rtsp_url(req: TapoRtspRequest) -> TapoRtspResponse:
         return TapoRtspResponse(rtsp_url=url, stream_profile=profile)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/camera/tapo-live-analyze", response_model=CognitiveCoachingResponse)
+async def capture_from_tapo_and_analyze(
+    req: TapoLiveAnalyzeRequest,
+) -> CognitiveCoachingResponse:
+    """Captures a real live frame from the Tapo C100 camera (`192.168.11.16:554`) via RTSP and runs the 4-stage AI pipeline."""
+    try:
+        live_b64 = TapoRtspUrlBuilder.capture_live_frame_base64(
+            ip_address=req.ip_address,
+            username=req.username,
+            password=req.password,
+            use_substream=True,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not capture frame from Tapo camera at {req.ip_address}: {exc}",
+        ) from exc
+
+    return await GLOBAL_PIPELINE.analyze_session(
+        SessionAnalyzeRequest(
+            learner_id=req.learner_id,
+            dish_id=req.dish_id,
+            attempt_number=req.attempt_number,
+            learner_reflection=req.learner_reflection,
+            keyframe_base64_list=[live_b64],
+            gemini_api_key=req.gemini_api_key,
+        )
+    )

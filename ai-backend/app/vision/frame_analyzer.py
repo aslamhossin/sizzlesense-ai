@@ -16,11 +16,13 @@ from app.schemas.domain import ComputerVisionMetrics
 class TapoRtspUrlBuilder:
     """Builds safe, RFC-3986 encoded RTSP URLs for TP-Link Tapo C100 / C110 / C200 cameras."""
 
+    DEFAULT_TAPO_IP = "192.168.11.16"
+
     @staticmethod
     def build_url(
-        ip_address: str,
-        username: str,
-        password: str,
+        ip_address: str = DEFAULT_TAPO_IP,
+        username: str = "",
+        password: str = "",
         use_substream: bool = False,
         port: int = 554,
     ) -> str:
@@ -31,6 +33,51 @@ class TapoRtspUrlBuilder:
         encoded_pass = quote(password, safe="")
         stream_path = "stream2" if use_substream else "stream1"
         return f"rtsp://{encoded_user}:{encoded_pass}@{clean_ip}:{port}/{stream_path}"
+
+    @classmethod
+    def capture_live_frame_base64(
+        cls,
+        ip_address: str = DEFAULT_TAPO_IP,
+        username: str = "",
+        password: str = "",
+        use_substream: bool = True,
+        timeout_sec: float = 6.0,
+    ) -> str:
+        """Captures a single live JPEG frame from the Tapo C100 RTSP stream over TCP using ffmpeg."""
+        import subprocess
+
+        rtsp_url = cls.build_url(
+            ip_address=ip_address,
+            username=username,
+            password=password,
+            use_substream=use_substream,
+        )
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-rtsp_transport",
+            "tcp",
+            "-i",
+            rtsp_url,
+            "-frames:v",
+            "1",
+            "-f",
+            "image2pipe",
+            "-vcodec",
+            "mjpeg",
+            "pipe:1",
+        ]
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout_sec,
+            check=False,
+        )
+        if proc.returncode != 0 or not proc.stdout:
+            err_tail = proc.stderr.decode("utf-8", errors="ignore")[-300:]
+            raise RuntimeError(f"Failed to capture RTSP frame from {clean_ip if (clean_ip := ip_address) else ''}: {err_tail}")
+        return base64.b64encode(proc.stdout).decode("utf-8")
 
 
 class KitchenFrameAnalyzer:
