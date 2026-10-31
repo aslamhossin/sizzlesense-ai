@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import base64
 from typing import List
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -182,6 +183,32 @@ async def build_tapo_rtsp_url(req: TapoRtspRequest) -> TapoRtspResponse:
         return TapoRtspResponse(rtsp_url=url, stream_profile=profile)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get(
+    "/api/v1/camera/tapo-live-snapshot",
+    responses={200: {"content": {"image/jpeg": {}}}},
+)
+async def get_tapo_live_snapshot(
+    username: str,
+    password: str,
+    ip_address: str = "192.168.11.16",
+) -> Response:
+    """Captures and displays a live JPEG frame directly from the Tapo C100 camera (`192.168.11.16:554`) in Swagger UI."""
+    try:
+        live_b64 = TapoRtspUrlBuilder.capture_live_frame_base64(
+            ip_address=ip_address,
+            username=username,
+            password=password,
+            use_substream=False,
+        )
+        jpeg_bytes = base64.b64decode(live_b64)
+        return Response(content=jpeg_bytes, media_type="image/jpeg")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not capture live snapshot from Tapo camera at {ip_address}: {exc}",
+        ) from exc
 
 
 @app.post("/api/v1/camera/tapo-live-analyze", response_model=CognitiveCoachingResponse)
