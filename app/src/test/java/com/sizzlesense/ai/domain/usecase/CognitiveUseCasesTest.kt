@@ -5,18 +5,21 @@ import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
 import com.sizzlesense.ai.di.NetworkModule
 import com.sizzlesense.ai.domain.model.SessionAnalyzeRequest
 import com.sizzlesense.ai.domain.model.TapoCameraConfig
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CognitiveUseCasesTest {
 
     private val fallbackDataSource = LocalFallbackCognitiveDataSource()
 
     @Test
     fun analyzeCookingSessionUseCase_normalizesAttemptBoundsAndTrimsReflection() {
-        runBlocking {
+        runTest {
             var capturedRequest: SessionAnalyzeRequest? = null
             val useCase = AnalyzeCookingSessionUseCase { _, request ->
                 capturedRequest = request
@@ -40,7 +43,7 @@ class CognitiveUseCasesTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun captureLiveTapoSessionUseCase_rejectsBlankCameraIp() {
-        runBlocking {
+        runTest {
             val useCase = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
                 error("Should not be called when IP is blank")
             }
@@ -58,7 +61,8 @@ class CognitiveUseCasesTest {
     fun failoverJsonHttpClient_resolvesDeduplicatedCandidateEndpointsInPriorityOrder() {
         val client = FailoverJsonHttpClient(
             json = NetworkModule.provideJson(),
-            httpClient = NetworkModule.provideOkHttpClient()
+            httpClient = NetworkModule.provideOkHttpClient(),
+            ioDispatcher = UnconfinedTestDispatcher()
         )
         val endpoints = client.resolveCandidateEndpoints("http://192.168.11.12:8000/")
 

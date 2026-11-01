@@ -6,6 +6,7 @@ import com.sizzlesense.ai.domain.repository.SessionStore
 import com.sizzlesense.ai.domain.usecase.RunHumanLearningEvalUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -65,6 +66,8 @@ class EvalBenchViewModel @Inject constructor(
                 val report = runHumanLearningEval(baseUrl = baseUrl)
                 sessionStore.recordEvalSuiteReport(report)
                 executionState.update { ExecutionState(isRunningEvals = false, errorMessage = null) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 executionState.update {
                     ExecutionState(

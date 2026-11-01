@@ -1,8 +1,10 @@
 package com.sizzlesense.ai.data.remote
 
+import com.sizzlesense.ai.di.IoDispatcher
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
@@ -14,7 +16,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 @Singleton
 class FailoverJsonHttpClient @Inject constructor(
     val json: Json,
-    private val httpClient: OkHttpClient
+    private val httpClient: OkHttpClient,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
     fun resolveCandidateEndpoints(primaryBaseUrl: String): List<String> {
@@ -31,7 +34,7 @@ class FailoverJsonHttpClient @Inject constructor(
         endpointPath: String,
         jsonBody: String,
         responseSerializer: KSerializer<T>
-    ): Result<T> = withContext(Dispatchers.IO) {
+    ): Result<T> = withContext(ioDispatcher) {
         val candidates = resolveCandidateEndpoints(primaryBaseUrl)
         val mediaType = JSON_MEDIA_TYPE.toMediaType()
         var lastError: Throwable = IllegalStateException("No candidate endpoints configured")
@@ -52,6 +55,8 @@ class FailoverJsonHttpClient @Inject constructor(
                         lastError = IllegalStateException("HTTP ${response.code}: $rawBody")
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 lastError = e
             }

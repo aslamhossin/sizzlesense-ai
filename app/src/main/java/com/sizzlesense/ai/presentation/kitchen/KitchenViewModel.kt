@@ -2,12 +2,14 @@ package com.sizzlesense.ai.presentation.kitchen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.SessionSnapshot
 import com.sizzlesense.ai.domain.repository.SessionStore
 import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -140,7 +142,7 @@ class KitchenViewModel @Inject constructor(
     private fun executePipelineTask(
         stageLabel: String,
         fallbackError: String,
-        block: suspend (SessionSnapshot) -> com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
+        block: suspend (SessionSnapshot) -> CognitiveCoachingResponse
     ) {
         val snapshot = sessionStore.sessionState.value
         viewModelScope.launch {
@@ -162,6 +164,8 @@ class KitchenViewModel @Inject constructor(
                     )
                 }
                 _effects.emit(KitchenUiEffect.NavigateToCoaching)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 executionStatus.update {
                     ExecutionStatus(
