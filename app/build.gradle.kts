@@ -1,7 +1,9 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
+    id("dagger.hilt.android.plugin")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -14,18 +16,14 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "DEFAULT_TAPO_IP", "\"192.168.11.16\"")
         buildConfigField("String", "DEFAULT_BACKEND_URL", "\"http://192.168.11.12:8000\"")
+        buildConfigField("String", "DEFAULT_TAPO_IP", "\"192.168.11.16\"")
     }
 
     buildTypes {
-        getByName("debug") {
-            isMinifyEnabled = false
-        }
-        getByName("release") {
+        release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -47,27 +45,19 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+}
 
-    packaging {
-        resources {
-            excludes += listOf(
-                "META-INF/DEPENDENCIES",
-                "META-INF/LICENSE",
-                "META-INF/LICENSE.txt",
-                "META-INF/NOTICE",
-                "META-INF/NOTICE.txt",
-                "META-INF/ASL2.0"
-            )
-        }
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.compose.bom))
@@ -76,17 +66,21 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons)
+    debugImplementation(libs.compose.ui.tooling)
+
+    implementation(libs.dagger.hilt.android)
+    ksp(libs.hilt.android.compiler)
+    implementation(libs.hilt.navigation.compose)
+
+    implementation(libs.coroutines.core)
+    implementation(libs.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.okhttp)
 
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.exoplayer.rtsp)
     implementation(libs.media3.ui)
 
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.okhttp)
-
     testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    debugImplementation(libs.compose.ui.tooling)
+    testImplementation(libs.coroutines.test)
 }
