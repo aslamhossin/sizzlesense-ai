@@ -20,33 +20,36 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
+import com.sizzlesense.ai.domain.model.FiveCoreQuestionsSummary
+import com.sizzlesense.ai.domain.model.SensoryCoachingOutput
 import com.sizzlesense.ai.presentation.components.LabeledDetailRow
 import com.sizzlesense.ai.presentation.components.SizzleSectionCard
 import com.sizzlesense.ai.presentation.mvi.SizzleIntent
 import com.sizzlesense.ai.presentation.mvi.SizzleUiState
 
 @Composable
-fun CoachingLoopTab(
+fun CoachingLoopRoute(
     state: SizzleUiState,
     onIntent: (SizzleIntent) -> Unit
 ) {
+    CoachingLoopScreen(
+        state = state,
+        onAnalyzeCurrentAttempt = { onIntent(SizzleIntent.AnalyzeCurrentSession) }
+    )
+}
+
+@Composable
+fun CoachingLoopScreen(
+    state: SizzleUiState,
+    onAnalyzeCurrentAttempt: () -> Unit
+) {
     val resp = state.latestCoachingResponse
     if (resp == null) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "No session analyzed yet.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Button(onClick = { onIntent(SizzleIntent.AnalyzeCurrentSession) }) {
-                    Text("Analyze Attempt ${state.currentAttemptNumber} Now")
-                }
-            }
-        }
+        EmptyCoachingSessionState(
+            currentAttemptNumber = state.currentAttemptNumber,
+            onAnalyzeCurrentAttempt = onAnalyzeCurrentAttempt
+        )
         return
     }
 
@@ -56,67 +59,105 @@ fun CoachingLoopTab(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        SizzleSectionCard(
-            title = resp.stage3TeachingDecision.selectedPrimaryIssue,
-            subtitle = "Single-Issue Focus (Attempt ${resp.attemptNumber})",
-            icon = Icons.Default.Lightbulb
-        ) {
-            Text(
-                text = resp.stage4SensoryCoaching.coachingMessage,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            HorizontalDivider()
-            Text(
-                text = "Sensory Cues to Shift How You Judge:",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "👁 Visual: ${resp.stage4SensoryCoaching.visualCueToObserve}",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = "👂 Auditory (Sizzle): ${resp.stage4SensoryCoaching.auditoryCueToListen}",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = "👃 Aroma: ${resp.stage4SensoryCoaching.olfactoryOrTactileCue}",
-                style = MaterialTheme.typography.bodySmall
-            )
-            HorizontalDivider()
-            LabeledDetailRow(
-                label = "Next Attempt Micro-Experiment:",
-                value = resp.stage4SensoryCoaching.nextAttemptMicroExperiment
-            )
-        }
+        SingleIssueCoachingCard(response = resp)
+        FiveCoreQuestionsCard(questions = resp.fiveCoreQuestions)
+    }
+}
 
-        SizzleSectionCard(
-            title = "The 5 Core Cookpad JD Questions Answered",
-            subtitle = "Synthesized across Stages 1–4",
-            icon = Icons.Default.QuestionAnswer
-        ) {
-            val q = resp.fiveCoreQuestions
-            LabeledDetailRow(
-                label = "1. What is happening right now?",
-                value = q.whatIsHappeningNow
+@Composable
+private fun EmptyCoachingSessionState(
+    currentAttemptNumber: Int,
+    onAnalyzeCurrentAttempt: () -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "No session analyzed yet.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            LabeledDetailRow(
-                label = "2. What do they understand vs. not yet?",
-                value = q.whatTheyUnderstandVsNot
-            )
-            LabeledDetailRow(
-                label = "3. Why did they make that decision?",
-                value = q.whyTheyMadeThatDecision
-            )
-            LabeledDetailRow(
-                label = "4. What single thing should we teach now?",
-                value = q.whatSingleThingToTeachNow
-            )
-            LabeledDetailRow(
-                label = "5. How to communicate to shift judgment?",
-                value = q.howToCommunicateToShiftJudgment
-            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Button(onClick = onAnalyzeCurrentAttempt) {
+                Text("Analyze Attempt $currentAttemptNumber Now")
+            }
         }
+    }
+}
+
+@Composable
+private fun SingleIssueCoachingCard(response: CognitiveCoachingResponse) {
+    val sensory = response.stage4SensoryCoaching
+    SizzleSectionCard(
+        title = response.stage3TeachingDecision.selectedPrimaryIssue,
+        subtitle = "Single-Issue Focus (Attempt ${response.attemptNumber})",
+        icon = Icons.Default.Lightbulb
+    ) {
+        Text(
+            text = sensory.coachingMessage,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        HorizontalDivider()
+        SensoryCuesList(sensory = sensory)
+        HorizontalDivider()
+        LabeledDetailRow(
+            label = "Next Attempt Micro-Experiment:",
+            value = sensory.nextAttemptMicroExperiment
+        )
+    }
+}
+
+@Composable
+private fun SensoryCuesList(sensory: SensoryCoachingOutput) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Sensory Cues to Shift How You Judge:",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = "👁 Visual: ${sensory.visualCueToObserve}",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Text(
+            text = "👂 Auditory (Sizzle): ${sensory.auditoryCueToListen}",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Text(
+            text = "👃 Aroma: ${sensory.olfactoryOrTactileCue}",
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+@Composable
+private fun FiveCoreQuestionsCard(questions: FiveCoreQuestionsSummary) {
+    SizzleSectionCard(
+        title = "The 5 Core Cookpad JD Questions Answered",
+        subtitle = "Synthesized across Stages 1–4",
+        icon = Icons.Default.QuestionAnswer
+    ) {
+        LabeledDetailRow(
+            label = "1. What is happening right now?",
+            value = questions.whatIsHappeningNow
+        )
+        LabeledDetailRow(
+            label = "2. What do they understand vs. not yet?",
+            value = questions.whatTheyUnderstandVsNot
+        )
+        LabeledDetailRow(
+            label = "3. Why did they make that decision?",
+            value = questions.whyTheyMadeThatDecision
+        )
+        LabeledDetailRow(
+            label = "4. What single thing should we teach now?",
+            value = questions.whatSingleThingToTeachNow
+        )
+        LabeledDetailRow(
+            label = "5. How to communicate to shift judgment?",
+            value = questions.howToCommunicateToShiftJudgment
+        )
     }
 }

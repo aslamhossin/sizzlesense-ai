@@ -43,8 +43,8 @@ import com.sizzlesense.ai.presentation.mvi.AppTab
 import com.sizzlesense.ai.presentation.mvi.SizzleIntent
 import com.sizzlesense.ai.presentation.mvi.SizzleUiState
 import com.sizzlesense.ai.presentation.mvi.SizzleViewModel
+import com.sizzlesense.ai.presentation.navigation.SizzleNavGraph
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SizzleMainScreen(
     viewModel: SizzleViewModel = hiltViewModel()
@@ -55,67 +55,13 @@ fun SizzleMainScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                ),
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Restaurant,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "SizzleSense AI",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Human Learning Cooking Coach • Gemini 3",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            )
+            SizzleTopAppBar()
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                AppTab.entries.forEach { tab ->
-                    NavigationBarItem(
-                        selected = state.activeTab == tab,
-                        onClick = { onIntent(SizzleIntent.SelectTab(tab)) },
-                        icon = {
-                            Icon(
-                                imageVector = tab.toIcon(),
-                                contentDescription = tab.label
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = tab.label,
-                                maxLines = 1
-                            )
-                        }
-                    )
-                }
-            }
+            SizzleBottomNavigationBar(
+                activeTab = state.activeTab,
+                onTabSelected = { tab -> onIntent(SizzleIntent.SelectTab(tab)) }
+            )
         }
     ) { innerPadding ->
         Column(
@@ -127,7 +73,9 @@ fun SizzleMainScreen(
         ) {
             AttemptSelectorBar(
                 state = state,
-                onIntent = onIntent
+                onAttemptSelected = { attempt ->
+                    onIntent(SizzleIntent.SelectAttemptNumber(attempt))
+                }
             )
 
             state.errorMessage?.let { err ->
@@ -137,25 +85,82 @@ fun SizzleMainScreen(
                 )
             }
 
-            Box(modifier = Modifier.weight(1f)) {
-                when (state.activeTab) {
-                    AppTab.KITCHEN_LIVE -> KitchenCaptureTab(
-                        state = state,
-                        onIntent = onIntent
+            SizzleNavGraph(
+                state = state,
+                onIntent = onIntent,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SizzleTopAppBar() {
+    TopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground
+        ),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Restaurant,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
                     )
-                    AppTab.COACHING_LOOP -> CoachingLoopTab(
-                        state = state,
-                        onIntent = onIntent
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "SizzleSense AI",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
-                    AppTab.AI_XRAY -> AiXRayInspectorTab(
-                        state = state
-                    )
-                    AppTab.EVAL_BENCH -> EvalBenchTab(
-                        state = state,
-                        onIntent = onIntent
+                    Text(
+                        text = "Human Learning Cooking Coach • Gemini 3",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+        }
+    )
+}
+
+@Composable
+private fun SizzleBottomNavigationBar(
+    activeTab: AppTab,
+    onTabSelected: (AppTab) -> Unit
+) {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        AppTab.entries.forEach { tab ->
+            NavigationBarItem(
+                selected = activeTab == tab,
+                onClick = { onTabSelected(tab) },
+                icon = {
+                    Icon(
+                        imageVector = tab.toIcon(),
+                        contentDescription = tab.label
+                    )
+                },
+                label = {
+                    Text(
+                        text = tab.label,
+                        maxLines = 1
+                    )
+                }
+            )
         }
     }
 }
@@ -163,7 +168,7 @@ fun SizzleMainScreen(
 @Composable
 private fun AttemptSelectorBar(
     state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit
+    onAttemptSelected: (Int) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -173,7 +178,7 @@ private fun AttemptSelectorBar(
             val completed = state.attemptHistory.containsKey(attempt)
             FilterChip(
                 selected = state.currentAttemptNumber == attempt,
-                onClick = { onIntent(SizzleIntent.SelectAttemptNumber(attempt)) },
+                onClick = { onAttemptSelected(attempt) },
                 label = {
                     Text(
                         text = if (completed) "Attempt $attempt ✓" else "Attempt $attempt"
