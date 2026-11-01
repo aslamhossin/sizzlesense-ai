@@ -8,13 +8,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.presentation.coaching.component.EmptyCoachingSessionState
 import com.sizzlesense.ai.presentation.coaching.component.FiveCoreQuestionsCard
 import com.sizzlesense.ai.presentation.coaching.component.SingleIssueCoachingCard
 import com.sizzlesense.ai.presentation.common.component.DismissibleErrorBanner
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
 fun CoachingRoute(
@@ -37,7 +37,7 @@ fun CoachingScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.md)
     ) {
         state.errorMessage?.let { err ->
             DismissibleErrorBanner(

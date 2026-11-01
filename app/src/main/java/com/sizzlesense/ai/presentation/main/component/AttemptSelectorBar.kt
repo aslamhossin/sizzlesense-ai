@@ -7,8 +7,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.sizzlesense.ai.presentation.main.MainUiState
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
 fun AttemptSelectorBar(
@@ -17,7 +17,7 @@ fun AttemptSelectorBar(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs)
     ) {
         listOf(1, 2, 3).forEach { attempt ->
             val completed = state.completedAttemptNumbers.contains(attempt)

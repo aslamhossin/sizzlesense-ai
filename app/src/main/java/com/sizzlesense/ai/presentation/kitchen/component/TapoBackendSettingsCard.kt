@@ -5,17 +5,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SettingsEthernet
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 import com.sizzlesense.ai.presentation.kitchen.KitchenUiIntent
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
 fun TapoBackendSettingsCard(
@@ -28,7 +27,7 @@ fun TapoBackendSettingsCard(
         subtitle = "Connected on LAN (${tapo.ipAddress}:554)",
         icon = Icons.Default.SettingsEthernet
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs)) {
             OutlinedTextField(
                 value = tapo.ipAddress,
                 onValueChange = { ip -> onIntent(tapo.updateIntent(ipAddress = ip)) },
@@ -45,7 +44,7 @@ fun TapoBackendSettingsCard(
             )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs)) {
             OutlinedTextField(
                 value = tapo.username,
                 onValueChange = { user -> onIntent(tapo.updateIntent(username = user)) },
@@ -69,8 +68,8 @@ fun TapoBackendSettingsCard(
         ) {
             Text(
                 text = "Use 360p Substream (/stream2) for low-latency AI",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = SizzleTheme.typography.bodySmall,
+                color = SizzleTheme.colors.textSecondary
             )
             Switch(
                 checked = tapo.useSubStream,

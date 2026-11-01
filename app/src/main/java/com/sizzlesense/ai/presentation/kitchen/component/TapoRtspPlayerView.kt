@@ -13,9 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,15 +25,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.rtsp.RtspMediaSource
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -82,14 +79,14 @@ fun TapoRtspPlayerView(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(210.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF14181F)),
+                .height(SizzleTheme.spacing.videoPreviewHeight)
+                .clip(SizzleTheme.radius.md)
+                .background(SizzleTheme.colors.videoCanvasBackground),
             contentAlignment = Alignment.Center
         ) {
             if (config.isConnected && exoPlayer != null) {
@@ -109,18 +106,18 @@ fun TapoRtspPlayerView(
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs),
+                    modifier = Modifier.padding(SizzleTheme.spacing.lg)
                 ) {
                     Text(
                         text = "Tapo C100 Overhead Kitchen Tracker (${config.ipAddress}:554)",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleSmall
+                        color = SizzleTheme.colors.textPrimary,
+                        style = SizzleTheme.typography.titleSmall
                     )
                     Text(
                         text = "Enter your Tapo Camera Account credentials below to stream live RTSP video or capture directly via the Python AI Backend.",
-                        color = Color(0xFFB0B8C4),
-                        style = MaterialTheme.typography.bodySmall
+                        color = SizzleTheme.colors.textSecondary,
+                        style = SizzleTheme.typography.bodySmall
                     )
                 }
             }
@@ -128,7 +125,7 @@ fun TapoRtspPlayerView(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs)
         ) {
             Button(
                 onClick = { onConnectToggle(!config.isConnected) },

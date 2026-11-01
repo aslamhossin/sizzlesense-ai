@@ -9,13 +9,12 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
 fun CoachingActionButtons(
@@ -28,12 +27,12 @@ fun CoachingActionButtons(
     if (isAnalyzing) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.md)
         ) {
             CircularProgressIndicator()
             Text(
                 text = activePipelineStageLabel,
-                style = MaterialTheme.typography.bodySmall
+                style = SizzleTheme.typography.bodySmall
             )
         }
     } else {

@@ -2,12 +2,12 @@ package com.sizzlesense.ai.presentation.xray.component
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterCenterFocus
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.sizzlesense.ai.domain.model.coaching.ExpertTeachingDecision
 import com.sizzlesense.ai.presentation.common.component.LabeledDetailRow
 import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
 fun Stage3PedagogicalRestraintCard(
@@ -26,13 +26,13 @@ fun Stage3PedagogicalRestraintCard(
         if (showSuppressedIssues) {
             Text(
                 text = "Deliberately Suppressed Secondary Issues:",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
+                style = SizzleTheme.typography.labelMedium,
+                color = SizzleTheme.colors.brandPrimary
             )
             stage3.deliberatelyOmittedIssues.forEach { omitted ->
                 Text(
                     text = "• ${omitted.issue} — ${omitted.suppressionReason}",
-                    style = MaterialTheme.typography.bodySmall
+                    style = SizzleTheme.typography.bodySmall
                 )
             }
         }

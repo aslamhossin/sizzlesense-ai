@@ -6,13 +6,13 @@ import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.sizzlesense.ai.presentation.navigation.SizzleDestination
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
 fun SizzleBottomNavigationBar(
@@ -20,7 +20,7 @@ fun SizzleBottomNavigationBar(
     onDestinationSelected: (SizzleDestination) -> Unit
 ) {
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = SizzleTheme.colors.surfacePrimary
     ) {
         SizzleDestination.entries.forEach { destination ->
             NavigationBarItem(

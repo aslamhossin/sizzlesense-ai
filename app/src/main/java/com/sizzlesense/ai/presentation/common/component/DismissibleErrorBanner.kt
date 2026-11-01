@@ -4,19 +4,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
 fun DismissibleErrorBanner(
@@ -24,30 +22,33 @@ fun DismissibleErrorBanner(
     onDismiss: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = SizzleTheme.radius.md,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.16f)
+            containerColor = SizzleTheme.colors.statusErrorContainer
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(
+                    horizontal = SizzleTheme.spacing.md,
+                    vertical = SizzleTheme.spacing.sm
+                ),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
+                color = SizzleTheme.colors.statusError,
+                style = SizzleTheme.typography.bodySmall,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Dismiss error",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = SizzleTheme.colors.statusError
                 )
             }
         }

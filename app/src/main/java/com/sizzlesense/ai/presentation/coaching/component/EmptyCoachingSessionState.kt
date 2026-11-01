@@ -7,12 +7,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
 fun EmptyCoachingSessionState(
@@ -27,9 +26,9 @@ fun EmptyCoachingSessionState(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "No session analyzed yet.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = SizzleTheme.colors.textSecondary
             )
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(SizzleTheme.spacing.sm))
             if (isAnalyzing) {
                 CircularProgressIndicator()
             } else {

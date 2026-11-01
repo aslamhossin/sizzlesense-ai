@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,6 +12,7 @@ import com.sizzlesense.ai.domain.model.session.LearnerArchetypeOption
 import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 import com.sizzlesense.ai.presentation.kitchen.KitchenUiIntent
 import com.sizzlesense.ai.presentation.kitchen.KitchenUiState
+import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
 fun OnionArchetypeScenarioCard(
@@ -43,8 +43,8 @@ fun OnionArchetypeScenarioCard(
 
         Text(
             text = "Frame status: ${state.capturedFrameLabel}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = SizzleTheme.typography.labelSmall,
+            color = SizzleTheme.colors.textSecondary
         )
 
         CoachingActionButtons(
