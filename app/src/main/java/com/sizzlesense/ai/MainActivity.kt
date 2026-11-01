@@ -8,12 +8,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sizzlesense.ai.di.SizzleAppContainer
 import com.sizzlesense.ai.presentation.mvi.SizzleViewModel
 import com.sizzlesense.ai.presentation.screens.SizzleMainScreen
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: SizzleViewModel by viewModels()
+    private val appContainer by lazy { SizzleAppContainer() }
+
+    private val viewModel: SizzleViewModel by viewModels {
+        appContainer.viewModelFactory
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

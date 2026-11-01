@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import uuid
-from typing import List, Optional
+from typing import Optional
 
 import httpx
 
@@ -12,7 +13,8 @@ from app.config import SETTINGS
 from app.engine.chef_knowledge import (
     CHEF_PRINCIPLES_REGISTRY,
     JD_ONION_ARCHETYPES,
-    ChefKnowledgeGraph,
+    ChefPrinciple,
+    LearnerArchetypeScenario,
 )
 from app.engine.learner_store import LearnerMemoryStore
 from app.schemas.domain import (
@@ -36,14 +38,35 @@ from app.vision.frame_analyzer import (
     generate_synthetic_kitchen_frame_base64,
 )
 
+SENSORY_KEYWORDS: tuple[str, ...] = (
+    "sizzle",
+    "steam",
+    "golden",
+    "amber",
+    "sound",
+    "shimmer",
+    "glaze",
+    "fond",
+    "smell",
+    "aroma",
+    "edges",
+)
+
+BLIND_TIMER_KEYWORDS: tuple[str, ...] = (
+    "without looking",
+    "just set my phone timer",
+    "only used a timer",
+)
+
 
 class CognitiveCoachingPipeline:
     """
-    Orchestrates the 4-Stage Applied AI Human Learning Pipeline:
-      Stage 1: Physical World Understanding (CV metrics + Gemini 3.8 Flash + Perception Gap)
-      Stage 2: Learner State Estimation (Latent understandings, misconceptions, root cause, transfer)
-      Stage 3: Expert Reasoning & Single-Issue Teaching Decision (Chef Causal Graph)
-      Stage 4: Sensory Coach Communicator (Shifting learner perception & judgment)
+    Orchestrates the 4-Stage Applied AI Human Learning Pipeline following SOLID & SRP:
+      - Stage 1 (`_build_stage1_physical_observation`): Physical World Understanding & Perception Gap
+      - Stage 2 (`_build_stage2_learner_state`): Learner Latent State & Longitudinal Transfer
+      - Stage 3 (`_build_stage3_teaching_decision`): Expert Causal Priority & Pedagogical Restraint
+      - Stage 4 (`_build_stage4_sensory_coaching`): Sensory-Grounded Coaching Communication
+      - Synthesis (`_synthesize_five_core_questions`): Direct mapping to the 5 Cookpad JD Questions
     """
 
     def __init__(self, memory_store: Optional[LearnerMemoryStore] = None) -> None:
@@ -52,7 +75,6 @@ class CognitiveCoachingPipeline:
     async def analyze_session(
         self, request: SessionAnalyzeRequest
     ) -> CognitiveCoachingResponse:
-        # 1. Extract Computer Vision metrics from frames (or generate preset frame if none sent)
         frames = list(request.keyframe_base64_list)
         if not frames:
             default_regime = (
@@ -65,18 +87,7 @@ class CognitiveCoachingPipeline:
             request.learner_id, request.dish_id, request.attempt_number
         )
 
-        # 2. Check if live Gemini API key is provided (ignore Swagger's default "string" placeholder)
-        import os
-
-        req_key = (
-            request.gemini_api_key
-            if request.gemini_api_key
-            and request.gemini_api_key.strip().lower() != "string"
-            else None
-        )
-        # During automated pytest runs, only call live network if key is explicitly passed in request
-        in_pytest = bool(os.environ.get("PYTEST_CURRENT_TEST"))
-        api_key = req_key or (None if in_pytest else SETTINGS.env_api_key)
+        api_key = self._resolve_active_api_key(request)
         if api_key:
             try:
                 live_response = await self._call_live_gemini_pipeline(
@@ -91,7 +102,6 @@ class CognitiveCoachingPipeline:
                 # Graceful fallback to deterministic cognitive engine if network/quota fails
                 pass
 
-        # 3. Deterministic 4-Stage Cognitive Pipeline
         response = self._run_deterministic_pipeline(
             request=request,
             cv_metrics=cv_metrics,
@@ -100,6 +110,18 @@ class CognitiveCoachingPipeline:
         self.memory_store.save_session(request.learner_id, response)
         return response
 
+    @staticmethod
+    def _resolve_active_api_key(request: SessionAnalyzeRequest) -> Optional[str]:
+        """Resolves valid Gemini API key while ignoring Swagger UI placeholder strings."""
+        req_key = (
+            request.gemini_api_key
+            if request.gemini_api_key
+            and request.gemini_api_key.strip().lower() != "string"
+            else None
+        )
+        in_pytest = bool(os.environ.get("PYTEST_CURRENT_TEST"))
+        return req_key or (None if in_pytest else SETTINGS.env_api_key)
+
     def _infer_archetype_id(
         self, request: SessionAnalyzeRequest, cv_metrics: ComputerVisionMetrics
     ) -> str:
@@ -107,23 +129,21 @@ class CognitiveCoachingPipeline:
             return request.archetype_hint
 
         text = request.learner_reflection.lower()
-        # Learner C: Perception Blindspot (claims browned/nicely cooked while frame is pale/steaming)
         if cv_metrics.dominant_visual_regime == "PALE_STEAMING_OR_RAW" and any(
             phrase in text
-            for phrase in [
+            for phrase in (
                 "browned really nicely",
                 "browned well",
                 "cooked nicely",
                 "looked done",
                 "just like the recipe said",
-            ]
+            )
         ):
             return "perception_blindspot"
 
-        # Learner B: Heat Anxiety (fears burning, turns heat down on steam)
         if any(
             phrase in text
-            for phrase in [
+            for phrase in (
                 "burn",
                 "turned the heat way down",
                 "turned the heat down",
@@ -131,11 +151,10 @@ class CognitiveCoachingPipeline:
                 "steamed a lot",
                 "afraid",
                 "smoke",
-            ]
+            )
         ):
             return "heat_anxiety"
 
-        # Learner A: Moisture Blindness (watery, pale, constant stirring)
         return "moisture_blindness"
 
     def _run_deterministic_pipeline(
@@ -146,9 +165,56 @@ class CognitiveCoachingPipeline:
     ) -> CognitiveCoachingResponse:
         archetype_id = self._infer_archetype_id(request, cv_metrics)
         archetype = JD_ONION_ARCHETYPES[archetype_id]
-        text_lower = request.learner_reflection.lower()
 
-        # --- STAGE 1: Physical World Understanding ---
+        stage1, visual_fact, inferred_states = self._build_stage1_physical_observation(
+            request=request,
+            cv_metrics=cv_metrics,
+            archetype_id=archetype_id,
+        )
+        stage2 = self._build_stage2_learner_state(
+            request=request,
+            cv_metrics=cv_metrics,
+            archetype_id=archetype_id,
+            archetype=archetype,
+            prior_session=prior_session,
+        )
+        stage3, primary_principle = self._build_stage3_teaching_decision(
+            archetype=archetype,
+            conceptual_shift=stage2.conceptual_shift_verified,
+        )
+        stage4 = self._build_stage4_sensory_coaching(
+            primary_principle=primary_principle,
+            visual_fact=visual_fact,
+        )
+        five_questions = self._synthesize_five_core_questions(
+            visual_fact=visual_fact,
+            primary_inferred_state=inferred_states[0],
+            stage2=stage2,
+            stage3=stage3,
+            stage4=stage4,
+        )
+
+        return CognitiveCoachingResponse(
+            session_id=f"sess_{uuid.uuid4().hex[:8]}",
+            learner_id=request.learner_id,
+            dish_id=request.dish_id,
+            attempt_number=request.attempt_number,
+            reasoning_model_used=f"{request.preferred_reasoning_model} (Deterministic-Verified)",
+            vision_model_used=f"{request.preferred_vision_model} + CV-Pixel-Analyzer",
+            five_core_questions=five_questions,
+            stage1_physical_observation=stage1,
+            stage2_learner_state=stage2,
+            stage3_teaching_decision=stage3,
+            stage4_sensory_coaching=stage4,
+        )
+
+    def _build_stage1_physical_observation(
+        self,
+        request: SessionAnalyzeRequest,
+        cv_metrics: ComputerVisionMetrics,
+        archetype_id: str,
+    ) -> tuple[PhysicalObservationReport, str, list[str]]:
+        """SRP Stage 1:Separates observed visual/acoustic facts from inferred physical pan states."""
         if cv_metrics.dominant_visual_regime == "PALE_STEAMING_OR_RAW":
             acoustic = request.acoustic_hint or (
                 AcousticSizzleSignature.SILENT_COLD
@@ -200,7 +266,6 @@ class CognitiveCoachingPipeline:
                 "Pan temperature exceeded 185°C after moisture depletion without heat reduction."
             ]
 
-        # Determine Perception Gap
         if (
             cv_metrics.dominant_visual_regime == "PALE_STEAMING_OR_RAW"
             and archetype_id == "perception_blindspot"
@@ -224,7 +289,7 @@ class CognitiveCoachingPipeline:
                 "Learner's observation of the pan state aligns with visual and acoustic evidence."
             )
 
-        stage1 = PhysicalObservationReport(
+        report = PhysicalObservationReport(
             observed_timeline_facts=[
                 TimelineFact(
                     timestamp="00:12" if request.attempt_number == 1 else "00:18",
@@ -241,28 +306,20 @@ class CognitiveCoachingPipeline:
             perception_gap_level=gap_level,
             perception_gap_explanation=gap_explanation,
         )
+        return report, visual_fact, inferred_states
 
-        # --- STAGE 2: Learner State Estimation (Longitudinal across Attempts 1->2->3) ---
-        sensory_keywords = [
-            "sizzle",
-            "steam",
-            "golden",
-            "amber",
-            "sound",
-            "shimmer",
-            "glaze",
-            "fond",
-            "smell",
-            "aroma",
-            "edges",
-        ]
-        blind_timer_keywords = [
-            "without looking",
-            "just set my phone timer",
-            "only used a timer",
-        ]
-        uses_sensory_reflection = any(k in text_lower for k in sensory_keywords)
-        relies_on_blind_timer = any(k in text_lower for k in blind_timer_keywords)
+    def _build_stage2_learner_state(
+        self,
+        request: SessionAnalyzeRequest,
+        cv_metrics: ComputerVisionMetrics,
+        archetype_id: str,
+        archetype: LearnerArchetypeScenario,
+        prior_session: Optional[CognitiveCoachingResponse],
+    ) -> LearnerStateEstimate:
+        """SRP Stage 2: Infers latent misconceptions, root cause, and longitudinal conceptual transfer."""
+        text_lower = request.learner_reflection.lower()
+        uses_sensory_reflection = any(k in text_lower for k in SENSORY_KEYWORDS)
+        relies_on_blind_timer = any(k in text_lower for k in BLIND_TIMER_KEYWORDS)
 
         if request.attempt_number == 1 or prior_session is None:
             transfer_status = BehavioralTransferStatus.INITIAL_BASELINE
@@ -293,7 +350,7 @@ class CognitiveCoachingPipeline:
                 f"Attempt {request.attempt_number}: Learner has not yet resolved the thermal/moisture bottleneck."
             )
 
-        stage2 = LearnerStateEstimate(
+        return LearnerStateEstimate(
             learner_archetype_id=archetype_id,
             demonstrated_understandings=[
                 archetype.latent_understanding_baseline,
@@ -320,7 +377,12 @@ class CognitiveCoachingPipeline:
             longitudinal_delta_summary=delta_summary,
         )
 
-        # --- STAGE 3: Expert Chef Reasoning & Single-Issue Teaching Decision ---
+    def _build_stage3_teaching_decision(
+        self,
+        archetype: LearnerArchetypeScenario,
+        conceptual_shift: bool,
+    ) -> tuple[ExpertTeachingDecision, ChefPrinciple]:
+        """SRP Stage 3: Selects the single highest-leverage causal bottleneck and suppresses secondary issues."""
         if not conceptual_shift:
             candidate_principle_ids = [
                 archetype.primary_principle_id,
@@ -328,7 +390,6 @@ class CognitiveCoachingPipeline:
                 "fond_glazing_and_aroma_timing",
             ]
         else:
-            # Once primary principle is mastered on Attempt 2/3, advance to finishing fond deglazing
             candidate_principle_ids = [
                 "fond_glazing_and_aroma_timing",
                 "cut_geometry_and_surface_area",
@@ -339,8 +400,10 @@ class CognitiveCoachingPipeline:
             CHEF_PRINCIPLES_REGISTRY[pid] for pid in candidate_principle_ids[1:]
         ]
 
-        stage3 = ExpertTeachingDecision(
-            candidate_issues_detected=[p.title for p in [primary_principle, *omitted_principles]],
+        decision = ExpertTeachingDecision(
+            candidate_issues_detected=[
+                p.title for p in [primary_principle, *omitted_principles]
+            ],
             selected_primary_issue=primary_principle.title,
             causal_priority_rationale=(
                 f"Selected '{primary_principle.title}' (Causal Rank {primary_principle.causal_rank}): "
@@ -358,9 +421,15 @@ class CognitiveCoachingPipeline:
             ],
             target_chef_principle_id=primary_principle.id,
         )
+        return decision, primary_principle
 
-        # --- STAGE 4: Sensory Coaching Output ---
-        stage4 = SensoryCoachingOutput(
+    def _build_stage4_sensory_coaching(
+        self,
+        primary_principle: ChefPrinciple,
+        visual_fact: str,
+    ) -> SensoryCoachingOutput:
+        """SRP Stage 4: Generates sensory-anchored coaching and next-attempt micro-experiment."""
+        return SensoryCoachingOutput(
             visual_cue_to_observe=primary_principle.visual_cue,
             auditory_cue_to_listen=primary_principle.auditory_cue,
             olfactory_or_tactile_cue=primary_principle.olfactory_tactile_cue,
@@ -376,8 +445,17 @@ class CognitiveCoachingPipeline:
             ),
         )
 
-        five_questions = FiveCoreQuestionsSummary(
-            what_is_happening_now=f"{visual_fact} ({inferred_states[0]})",
+    @staticmethod
+    def _synthesize_five_core_questions(
+        visual_fact: str,
+        primary_inferred_state: str,
+        stage2: LearnerStateEstimate,
+        stage3: ExpertTeachingDecision,
+        stage4: SensoryCoachingOutput,
+    ) -> FiveCoreQuestionsSummary:
+        """Maps the 4 stages directly onto the 5 Cookpad JD Human Learning questions."""
+        return FiveCoreQuestionsSummary(
+            what_is_happening_now=f"{visual_fact} ({primary_inferred_state})",
             what_they_understand_vs_not=(
                 f"Understands: {stage2.demonstrated_understandings[0]} | "
                 f"Not yet understood: {stage2.latent_misconceptions[0].description}"
@@ -385,20 +463,6 @@ class CognitiveCoachingPipeline:
             why_they_made_that_decision=stage2.decision_root_cause,
             what_single_thing_to_teach_now=stage3.selected_primary_issue,
             how_to_communicate_to_shift_judgment=stage4.coaching_message,
-        )
-
-        return CognitiveCoachingResponse(
-            session_id=f"sess_{uuid.uuid4().hex[:8]}",
-            learner_id=request.learner_id,
-            dish_id=request.dish_id,
-            attempt_number=request.attempt_number,
-            reasoning_model_used=f"{request.preferred_reasoning_model} (Deterministic-Verified)",
-            vision_model_used=f"{request.preferred_vision_model} + CV-Pixel-Analyzer",
-            five_core_questions=five_questions,
-            stage1_physical_observation=stage1,
-            stage2_learner_state=stage2,
-            stage3_teaching_decision=stage3,
-            stage4_sensory_coaching=stage4,
         )
 
     async def _call_live_gemini_pipeline(
