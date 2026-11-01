@@ -71,6 +71,8 @@ dependencies {
     implementation(libs.dagger.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.navigation3.runtime)
+    implementation(libs.navigation3.ui)
 
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)

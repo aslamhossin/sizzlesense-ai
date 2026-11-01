@@ -4,6 +4,7 @@ kotlin = "2.4.20"
 ksp = "2.3.12"
 daggerHilt = "2.60.1"
 hiltNavigationCompose = "1.4.0"
+navigation3 = "1.2.0"
 compileSdk = "37"
 minSdk = "26"
 targetSdk = "36"
@@ -43,6 +44,8 @@ compose-material-icons = { module = "androidx.compose.material:material-icons-ex
 dagger-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "daggerHilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "daggerHilt" }
 hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
+navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
