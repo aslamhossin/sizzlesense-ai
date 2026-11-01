@@ -1,7 +1,7 @@
 package com.sizzlesense.ai.domain.usecase
 
-import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
-import com.sizzlesense.ai.domain.model.SessionAnalyzeRequest
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
+import com.sizzlesense.ai.domain.model.session.SessionAnalyzeRequest
 import com.sizzlesense.ai.domain.repository.SessionAnalysisGateway
 import javax.inject.Inject
 

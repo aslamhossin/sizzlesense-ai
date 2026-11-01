@@ -2,15 +2,16 @@ package com.sizzlesense.ai.data.repository
 
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
-import com.sizzlesense.ai.data.remote.dto.CognitiveCoachingResponseDto
-import com.sizzlesense.ai.data.remote.dto.EvalSuiteReportDto
-import com.sizzlesense.ai.data.remote.dto.SessionAnalyzeRequestDto
-import com.sizzlesense.ai.data.remote.dto.toDomain
-import com.sizzlesense.ai.data.remote.dto.toDto
-import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
-import com.sizzlesense.ai.domain.model.EvalSuiteReport
-import com.sizzlesense.ai.domain.model.SessionAnalyzeRequest
-import com.sizzlesense.ai.domain.model.TapoCameraConfig
+import com.sizzlesense.ai.data.remote.dto.coaching.CognitiveCoachingResponseDto
+import com.sizzlesense.ai.data.remote.dto.coaching.toDomain
+import com.sizzlesense.ai.data.remote.dto.eval.EvalSuiteReportDto
+import com.sizzlesense.ai.data.remote.dto.eval.toDomain
+import com.sizzlesense.ai.data.remote.dto.request.SessionAnalyzeRequestDto
+import com.sizzlesense.ai.data.remote.dto.request.toDto
+import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
+import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
+import com.sizzlesense.ai.domain.model.session.SessionAnalyzeRequest
 import com.sizzlesense.ai.domain.repository.CognitiveRepository
 import javax.inject.Inject
 import javax.inject.Singleton

@@ -3,9 +3,9 @@ package com.sizzlesense.ai.presentation.coaching.component
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.runtime.Composable
-import com.sizzlesense.ai.domain.model.FiveCoreQuestionsSummary
-import com.sizzlesense.ai.presentation.components.LabeledDetailRow
-import com.sizzlesense.ai.presentation.components.SizzleSectionCard
+import com.sizzlesense.ai.domain.model.coaching.FiveCoreQuestionsSummary
+import com.sizzlesense.ai.presentation.common.component.LabeledDetailRow
+import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 
 @Composable
 fun FiveCoreQuestionsCard(questions: FiveCoreQuestionsSummary) {

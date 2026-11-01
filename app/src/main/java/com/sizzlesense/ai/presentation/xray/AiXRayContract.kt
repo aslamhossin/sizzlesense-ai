@@ -1,6 +1,6 @@
 package com.sizzlesense.ai.presentation.xray
 
-import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 
 data class AiXRayUiState(
     val currentAttemptNumber: Int = 1,

@@ -1,6 +1,6 @@
 package com.sizzlesense.ai.presentation.evalbench
 
-import com.sizzlesense.ai.domain.model.EvalSuiteReport
+import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
 
 data class EvalBenchUiState(
     val isRunningEvals: Boolean = false,

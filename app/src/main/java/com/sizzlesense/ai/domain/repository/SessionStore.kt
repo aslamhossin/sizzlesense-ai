@@ -1,10 +1,10 @@
 package com.sizzlesense.ai.domain.repository
 
-import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
-import com.sizzlesense.ai.domain.model.EvalSuiteReport
-import com.sizzlesense.ai.domain.model.LearnerArchetypeOption
-import com.sizzlesense.ai.domain.model.SessionSnapshot
-import com.sizzlesense.ai.domain.model.TapoCameraConfig
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
+import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
+import com.sizzlesense.ai.domain.model.session.LearnerArchetypeOption
+import com.sizzlesense.ai.domain.model.session.SessionSnapshot
+import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import kotlinx.coroutines.flow.StateFlow
 
 interface SessionStore {

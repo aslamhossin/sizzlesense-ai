@@ -7,7 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.sizzlesense.ai.domain.model.SensoryCoachingOutput
+import com.sizzlesense.ai.domain.model.coaching.SensoryCoachingOutput
 
 @Composable
 fun SensoryCuesList(sensory: SensoryCoachingOutput) {

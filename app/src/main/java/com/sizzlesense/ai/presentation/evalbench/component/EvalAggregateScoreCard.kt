@@ -4,8 +4,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.sizzlesense.ai.domain.model.EvalSuiteReport
-import com.sizzlesense.ai.presentation.components.SizzleSectionCard
+import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
+import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 
 @Composable
 fun EvalAggregateScoreCard(report: EvalSuiteReport) {

@@ -6,9 +6,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
-import com.sizzlesense.ai.domain.model.LearnerStateEstimate
-import com.sizzlesense.ai.presentation.components.LabeledDetailRow
-import com.sizzlesense.ai.presentation.components.SizzleSectionCard
+import com.sizzlesense.ai.domain.model.coaching.LearnerStateEstimate
+import com.sizzlesense.ai.presentation.common.component.LabeledDetailRow
+import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 
 @Composable
 fun Stage2LearnerLatentStateCard(

@@ -14,7 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.presentation.coaching.component.EmptyCoachingSessionState
 import com.sizzlesense.ai.presentation.coaching.component.FiveCoreQuestionsCard
 import com.sizzlesense.ai.presentation.coaching.component.SingleIssueCoachingCard
-import com.sizzlesense.ai.presentation.components.DismissibleErrorBanner
+import com.sizzlesense.ai.presentation.common.component.DismissibleErrorBanner
 
 @Composable
 fun CoachingRoute(

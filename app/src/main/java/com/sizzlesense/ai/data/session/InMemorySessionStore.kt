@@ -1,11 +1,11 @@
 package com.sizzlesense.ai.data.session
 
 import com.sizzlesense.ai.BuildConfig
-import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
-import com.sizzlesense.ai.domain.model.EvalSuiteReport
-import com.sizzlesense.ai.domain.model.LearnerArchetypeOption
-import com.sizzlesense.ai.domain.model.SessionSnapshot
-import com.sizzlesense.ai.domain.model.TapoCameraConfig
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
+import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
+import com.sizzlesense.ai.domain.model.session.LearnerArchetypeOption
+import com.sizzlesense.ai.domain.model.session.SessionSnapshot
+import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import com.sizzlesense.ai.domain.repository.SessionStore
 import javax.inject.Inject
 import javax.inject.Singleton

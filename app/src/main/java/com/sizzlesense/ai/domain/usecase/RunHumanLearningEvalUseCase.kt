@@ -1,6 +1,6 @@
 package com.sizzlesense.ai.domain.usecase
 
-import com.sizzlesense.ai.domain.model.EvalSuiteReport
+import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
 import com.sizzlesense.ai.domain.repository.EvaluationBenchmarkGateway
 import javax.inject.Inject
 

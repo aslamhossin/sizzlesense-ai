@@ -12,8 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sizzlesense.ai.data.camera.TapoRtspPlayerView
-import com.sizzlesense.ai.presentation.components.DismissibleErrorBanner
+import com.sizzlesense.ai.presentation.kitchen.component.TapoRtspPlayerView
+import com.sizzlesense.ai.presentation.common.component.DismissibleErrorBanner
 import com.sizzlesense.ai.presentation.kitchen.component.OnionArchetypeScenarioCard
 import com.sizzlesense.ai.presentation.kitchen.component.TapoBackendSettingsCard
 

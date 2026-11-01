@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sizzlesense.ai.presentation.components.DismissibleErrorBanner
+import com.sizzlesense.ai.presentation.common.component.DismissibleErrorBanner
 import com.sizzlesense.ai.presentation.evalbench.component.EvalAggregateScoreCard
 import com.sizzlesense.ai.presentation.evalbench.component.EvalBenchmarkControlCard
 import com.sizzlesense.ai.presentation.evalbench.component.EvalCaseResultCard

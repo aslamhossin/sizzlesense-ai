@@ -5,9 +5,9 @@ import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.sizzlesense.ai.domain.model.ExpertTeachingDecision
-import com.sizzlesense.ai.presentation.components.LabeledDetailRow
-import com.sizzlesense.ai.presentation.components.SizzleSectionCard
+import com.sizzlesense.ai.domain.model.coaching.ExpertTeachingDecision
+import com.sizzlesense.ai.presentation.common.component.LabeledDetailRow
+import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 
 @Composable
 fun Stage3PedagogicalRestraintCard(

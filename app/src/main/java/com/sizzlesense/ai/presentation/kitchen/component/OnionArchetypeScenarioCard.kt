@@ -9,8 +9,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.sizzlesense.ai.domain.model.LearnerArchetypeOption
-import com.sizzlesense.ai.presentation.components.SizzleSectionCard
+import com.sizzlesense.ai.domain.model.session.LearnerArchetypeOption
+import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 import com.sizzlesense.ai.presentation.kitchen.KitchenUiIntent
 import com.sizzlesense.ai.presentation.kitchen.KitchenUiState
 

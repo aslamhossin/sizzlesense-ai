@@ -8,7 +8,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.sizzlesense.ai.presentation.components.SizzleSectionCard
+import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 
 @Composable
 fun EvalBenchmarkControlCard(

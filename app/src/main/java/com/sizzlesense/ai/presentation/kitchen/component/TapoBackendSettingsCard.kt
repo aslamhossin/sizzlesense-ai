@@ -13,8 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.sizzlesense.ai.domain.model.TapoCameraConfig
-import com.sizzlesense.ai.presentation.components.SizzleSectionCard
+import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
+import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 import com.sizzlesense.ai.presentation.kitchen.KitchenUiIntent
 
 @Composable

@@ -1,6 +1,6 @@
 package com.sizzlesense.ai.presentation.coaching
 
-import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 
 data class CoachingUiState(
     val currentAttemptNumber: Int = 1,

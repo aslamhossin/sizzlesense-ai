@@ -1,6 +1,6 @@
 package com.sizzlesense.ai.data.remote
 
-import com.sizzlesense.ai.di.IoDispatcher
+import com.sizzlesense.ai.di.qualifier.IoDispatcher
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException

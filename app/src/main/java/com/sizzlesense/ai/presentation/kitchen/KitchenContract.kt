@@ -1,8 +1,8 @@
 package com.sizzlesense.ai.presentation.kitchen
 
 import com.sizzlesense.ai.BuildConfig
-import com.sizzlesense.ai.domain.model.LearnerArchetypeOption
-import com.sizzlesense.ai.domain.model.TapoCameraConfig
+import com.sizzlesense.ai.domain.model.session.LearnerArchetypeOption
+import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 
 data class KitchenUiState(
     val backendBaseUrl: String = BuildConfig.DEFAULT_BACKEND_URL,

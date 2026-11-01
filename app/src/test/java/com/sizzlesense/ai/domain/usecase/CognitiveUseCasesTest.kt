@@ -2,9 +2,9 @@ package com.sizzlesense.ai.domain.usecase
 
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
-import com.sizzlesense.ai.di.NetworkModule
-import com.sizzlesense.ai.domain.model.SessionAnalyzeRequest
-import com.sizzlesense.ai.domain.model.TapoCameraConfig
+import com.sizzlesense.ai.di.module.NetworkModule
+import com.sizzlesense.ai.domain.model.session.SessionAnalyzeRequest
+import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest

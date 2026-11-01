@@ -1,7 +1,7 @@
 package com.sizzlesense.ai.domain.usecase
 
-import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
-import com.sizzlesense.ai.domain.model.TapoCameraConfig
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
+import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import com.sizzlesense.ai.domain.repository.LiveTapoCameraGateway
 import javax.inject.Inject
 

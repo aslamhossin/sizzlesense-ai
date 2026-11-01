@@ -6,9 +6,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
-import com.sizzlesense.ai.presentation.components.LabeledDetailRow
-import com.sizzlesense.ai.presentation.components.SizzleSectionCard
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
+import com.sizzlesense.ai.presentation.common.component.LabeledDetailRow
+import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 
 @Composable
 fun SingleIssueCoachingCard(response: CognitiveCoachingResponse) {
