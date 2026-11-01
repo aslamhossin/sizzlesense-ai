@@ -47,12 +47,18 @@ fun TapoRtspPlayerView(
     config: TapoCameraConfig,
     onConnectToggle: (Boolean) -> Unit,
     onFrameCaptured: (base64Jpeg: String, label: String) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var textureViewRef by remember { mutableStateOf<TextureView?>(null) }
 
-    val exoPlayer = remember(config.ipAddress, config.username, config.password, config.useSubStream, config.isConnected) {
+    val exoPlayer = remember(
+        config.ipAddress,
+        config.username,
+        config.password,
+        config.useSubStream,
+        config.isConnected
+    ) {
         if (!config.isConnected) {
             null
         } else {
@@ -76,7 +82,7 @@ fun TapoRtspPlayerView(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(
             modifier = Modifier
@@ -84,7 +90,7 @@ fun TapoRtspPlayerView(
                 .height(210.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF14181F)),
-            contentAlignment = Alignment.Center,
+            contentAlignment = Alignment.Center
         ) {
             if (config.isConnected && exoPlayer != null) {
                 AndroidView(
@@ -98,23 +104,23 @@ fun TapoRtspPlayerView(
                         textureViewRef = tv
                         exoPlayer.setVideoTextureView(tv)
                     },
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize()
                 )
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
                         text = "Tapo C100 Overhead Kitchen Tracker (${config.ipAddress}:554)",
                         color = Color.White,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleSmall
                     )
                     Text(
                         text = "Enter your Tapo Camera Account credentials below to stream live RTSP video or capture directly via the Python AI Backend.",
                         color = Color(0xFFB0B8C4),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
@@ -122,11 +128,11 @@ fun TapoRtspPlayerView(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
                 onClick = { onConnectToggle(!config.isConnected) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f)
             ) {
                 Text(if (config.isConnected) "Stop RTSP Stream" else "Stream Tapo C100 Live")
             }
@@ -144,7 +150,7 @@ fun TapoRtspPlayerView(
                     }
                 },
                 enabled = config.isConnected,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f)
             ) {
                 Text("Grab Frame from Stream")
             }

@@ -2,10 +2,11 @@ package com.sizzlesense.ai.presentation.mvi
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sizzlesense.ai.data.repository.SizzleCognitiveRepository
 import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
 import com.sizzlesense.ai.domain.usecase.RunHumanLearningEvalUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -14,25 +15,11 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * Presentation Layer MVI ViewModel.
- *
- * Adheres to:
- * - SRP: Handles Intent dispatching and unidirectional state emission via [SizzleReducer].
- * - DIP: Depends on Domain Use Cases ([AnalyzeCookingSessionUseCase], [CaptureLiveTapoSessionUseCase],
- *   [RunHumanLearningEvalUseCase]) rather than concrete Data layer implementations.
- * - DRY: Centralizes coroutine launch & error reduction in [launchReducedTask].
- */
-class SizzleViewModel(
-    private val analyzeCookingSession: AnalyzeCookingSessionUseCase = AnalyzeCookingSessionUseCase(
-        SizzleCognitiveRepository()
-    ),
-    private val captureLiveTapoSession: CaptureLiveTapoSessionUseCase = CaptureLiveTapoSessionUseCase(
-        SizzleCognitiveRepository()
-    ),
-    private val runHumanLearningEval: RunHumanLearningEvalUseCase = RunHumanLearningEvalUseCase(
-        SizzleCognitiveRepository()
-    ),
+@HiltViewModel
+class SizzleViewModel @Inject constructor(
+    private val analyzeCookingSession: AnalyzeCookingSessionUseCase,
+    private val captureLiveTapoSession: CaptureLiveTapoSessionUseCase,
+    private val runHumanLearningEval: RunHumanLearningEvalUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SizzleUiState())
@@ -43,18 +30,20 @@ class SizzleViewModel(
 
     fun dispatch(intent: SizzleIntent) {
         when (intent) {
-            is SizzleIntent.SelectTab -> applyResult(SizzleReductionResult.TabChanged(intent.tab))
+            is SizzleIntent.SelectTab -> {
+                applyResult(SizzleReductionResult.TabChanged(intent.tab))
+            }
 
-            is SizzleIntent.UpdateBackendUrl -> applyResult(
-                SizzleReductionResult.BackendUrlUpdated(intent.url)
-            )
+            is SizzleIntent.UpdateBackendUrl -> {
+                applyResult(SizzleReductionResult.BackendUrlUpdated(intent.url))
+            }
 
             is SizzleIntent.UpdateTapoConfig -> {
                 val updated = _uiState.value.tapoConfig.copy(
                     ipAddress = intent.ipAddress,
                     username = intent.username,
                     password = intent.password,
-                    useSubStream = intent.useSubStream,
+                    useSubStream = intent.useSubStream
                 )
                 applyResult(SizzleReductionResult.TapoConfigUpdated(updated))
             }
@@ -68,7 +57,7 @@ class SizzleViewModel(
                 applyResult(
                     SizzleReductionResult.FrameCaptured(
                         base64Jpeg = intent.base64Jpeg,
-                        label = intent.timestampLabel,
+                        label = intent.timestampLabel
                     )
                 )
             }
@@ -99,14 +88,10 @@ class SizzleViewModel(
         _uiState.value = SizzleReducer.reduce(_uiState.value, result)
     }
 
-    /**
-     * DRY coroutine helper: emits [startResult], executes [block], and reduces any exception
-     * into [SizzleReductionResult.ErrorOccurred] with [fallbackErrorMessage].
-     */
     private fun launchReducedTask(
         startResult: SizzleReductionResult,
         fallbackErrorMessage: String,
-        block: suspend (SizzleUiState) -> SizzleReductionResult,
+        block: suspend (SizzleUiState) -> SizzleReductionResult
     ) {
         val snapshot = _uiState.value
         viewModelScope.launch {
@@ -128,14 +113,14 @@ class SizzleViewModel(
             startResult = SizzleReductionResult.AnalysisStarted(
                 "Running 4-Stage Cognitive Pipeline (Stage 1 Physical -> Stage 4 Sensory)..."
             ),
-            fallbackErrorMessage = "Failed to analyze cooking session",
+            fallbackErrorMessage = "Failed to analyze cooking session"
         ) { state ->
             val response = analyzeCookingSession(
                 baseUrl = state.backendBaseUrl,
                 archetypeId = state.selectedArchetype.id,
                 attemptNumber = state.currentAttemptNumber,
                 learnerReflection = state.learnerReflectionText,
-                capturedFrameBase64 = state.capturedFrameBase64,
+                capturedFrameBase64 = state.capturedFrameBase64
             )
             SizzleReductionResult.AnalysisCompleted(response)
         }
@@ -147,13 +132,13 @@ class SizzleViewModel(
             startResult = SizzleReductionResult.AnalysisStarted(
                 "Grabbing live RTSP frame from Tapo C100 ($ip:554) & running Gemini 3..."
             ),
-            fallbackErrorMessage = "Live Tapo capture failed",
+            fallbackErrorMessage = "Live Tapo capture failed"
         ) { state ->
             val response = captureLiveTapoSession(
                 baseUrl = state.backendBaseUrl,
                 tapoConfig = state.tapoConfig,
                 attemptNumber = state.currentAttemptNumber,
-                reflectionText = state.learnerReflectionText,
+                reflectionText = state.learnerReflectionText
             )
             SizzleReductionResult.AnalysisCompleted(response)
         }
@@ -162,7 +147,7 @@ class SizzleViewModel(
     private fun runEvaluationSuite() {
         launchReducedTask(
             startResult = SizzleReductionResult.EvalSuiteStarted,
-            fallbackErrorMessage = "Eval benchmark execution failed",
+            fallbackErrorMessage = "Eval benchmark execution failed"
         ) { state ->
             val report = runHumanLearningEval(baseUrl = state.backendBaseUrl)
             SizzleReductionResult.EvalSuiteCompleted(report)

@@ -2,6 +2,7 @@ package com.sizzlesense.ai.domain.usecase
 
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
+import com.sizzlesense.ai.di.NetworkModule
 import com.sizzlesense.ai.domain.model.SessionAnalyzeRequest
 import com.sizzlesense.ai.domain.model.TapoCameraConfig
 import kotlinx.coroutines.runBlocking
@@ -27,7 +28,7 @@ class CognitiveUseCasesTest {
                 archetypeId = "moisture_blindness",
                 attemptNumber = 99,
                 learnerReflection = "   I waited for the sizzle sound!   ",
-                capturedFrameBase64 = "   ",
+                capturedFrameBase64 = "   "
             )
 
             assertEquals(3, capturedRequest?.attemptNumber)
@@ -48,23 +49,26 @@ class CognitiveUseCasesTest {
                 baseUrl = "http://192.168.11.12:8000",
                 tapoConfig = TapoCameraConfig(ipAddress = "   "),
                 attemptNumber = 1,
-                reflectionText = "Testing live camera",
+                reflectionText = "Testing live camera"
             )
         }
     }
 
     @Test
     fun failoverJsonHttpClient_resolvesDeduplicatedCandidateEndpointsInPriorityOrder() {
-        val client = FailoverJsonHttpClient()
+        val client = FailoverJsonHttpClient(
+            json = NetworkModule.provideJson(),
+            httpClient = NetworkModule.provideOkHttpClient()
+        )
         val endpoints = client.resolveCandidateEndpoints("http://192.168.11.12:8000/")
 
         assertEquals(
             listOf(
                 "http://192.168.11.12:8000",
                 "http://10.0.2.2:8000",
-                "http://127.0.0.1:8000",
+                "http://127.0.0.1:8000"
             ),
-            endpoints,
+            endpoints
         )
     }
 }

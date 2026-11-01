@@ -8,17 +8,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sizzlesense.ai.di.SizzleAppContainer
 import com.sizzlesense.ai.presentation.mvi.SizzleViewModel
 import com.sizzlesense.ai.presentation.screens.SizzleMainScreen
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val appContainer by lazy { SizzleAppContainer() }
-
-    private val viewModel: SizzleViewModel by viewModels {
-        appContainer.viewModelFactory
-    }
+    private val viewModel: SizzleViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,7 +25,7 @@ class MainActivity : ComponentActivity() {
                     val state by viewModel.uiState.collectAsStateWithLifecycle()
                     SizzleMainScreen(
                         state = state,
-                        onIntent = viewModel::dispatch,
+                        onIntent = viewModel::dispatch
                     )
                 }
             }

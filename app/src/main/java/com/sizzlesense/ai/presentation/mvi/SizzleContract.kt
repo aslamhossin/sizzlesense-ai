@@ -9,14 +9,14 @@ enum class AppTab(val label: String) {
     KITCHEN_LIVE("1. Kitchen & RTSP"),
     COACHING_LOOP("2. 3-Attempt Coach"),
     AI_XRAY("3. AI X-Ray"),
-    EVAL_BENCH("4. Eval Bench"),
+    EVAL_BENCH("4. Eval Bench")
 }
 
 enum class LearnerArchetypeOption(
     val id: String,
     val title: String,
     val jdSubtitle: String,
-    val presetReflections: Map<Int, String>,
+    val presetReflections: Map<Int, String>
 ) {
     MOISTURE_BLINDNESS(
         id = "moisture_blindness",
@@ -25,8 +25,8 @@ enum class LearnerArchetypeOption(
         presetReflections = mapOf(
             1 to "I kept stirring the onions for 8 minutes on medium heat, but they stayed pale and watery instead of browning.",
             2 to "I spread the onions out and waited until the wet bubbling sound turned into a crisp sizzle before stirring!",
-            3 to "As soon as I heard the sizzle sharpen after moisture cooked off, I adjusted heat to keep steady golden browning.",
-        ),
+            3 to "As soon as I heard the sizzle sharpen after moisture cooked off, I adjusted heat to keep steady golden browning."
+        )
     ),
     HEAT_ANXIETY(
         id = "heat_anxiety",
@@ -35,8 +35,8 @@ enum class LearnerArchetypeOption(
         presetReflections = mapOf(
             1 to "It started steaming a lot right away so I turned the heat way down so it wouldn't burn, and nothing browned.",
             2 to "I saw the white steam again, recognized it was harmless water vapor, and kept the heat steady until golden.",
-            3 to "I used the steady applause sizzle sound and clear oil shimmer to ride medium-high heat confidently.",
-        ),
+            3 to "I used the steady applause sizzle sound and clear oil shimmer to ride medium-high heat confidently."
+        )
     ),
     PERCEPTION_BLINDSPOT(
         id = "perception_blindspot",
@@ -45,9 +45,9 @@ enum class LearnerArchetypeOption(
         presetReflections = mapOf(
             1 to "I sautéed the onions for 5 minutes just like the recipe said and they browned really nicely!",
             2 to "I ignored the 5-minute timer this time and waited until I saw actual amber-gold color on the edges and pan fond.",
-            3 to "Now I can immediately tell the difference between sweaty translucent onions and true nutty golden browning.",
-        ),
-    ),
+            3 to "Now I can immediately tell the difference between sweaty translucent onions and true nutty golden browning."
+        )
+    )
 }
 
 data class SizzleUiState(
@@ -58,14 +58,15 @@ data class SizzleUiState(
     val capturedFrameLabel: String = "No live frame captured yet",
     val selectedArchetype: LearnerArchetypeOption = LearnerArchetypeOption.MOISTURE_BLINDNESS,
     val currentAttemptNumber: Int = 1,
-    val learnerReflectionText: String = LearnerArchetypeOption.MOISTURE_BLINDNESS.presetReflections[1].orEmpty(),
+    val learnerReflectionText: String =
+        LearnerArchetypeOption.MOISTURE_BLINDNESS.presetReflections[1].orEmpty(),
     val isAnalyzing: Boolean = false,
     val activePipelineStageLabel: String = "Idle — Ready for Kitchen Session",
     val latestCoachingResponse: CognitiveCoachingResponse? = null,
     val attemptHistory: Map<Int, CognitiveCoachingResponse> = emptyMap(),
     val isRunningEvals: Boolean = false,
     val evalSuiteReport: EvalSuiteReport? = null,
-    val errorMessage: String? = null,
+    val errorMessage: String? = null
 )
 
 sealed interface SizzleIntent {
@@ -75,10 +76,13 @@ sealed interface SizzleIntent {
         val ipAddress: String,
         val username: String,
         val password: String,
-        val useSubStream: Boolean,
+        val useSubStream: Boolean
     ) : SizzleIntent
     data class SetTapoStreamConnected(val connected: Boolean) : SizzleIntent
-    data class OnLiveFrameCaptured(val base64Jpeg: String, val timestampLabel: String) : SizzleIntent
+    data class OnLiveFrameCaptured(
+        val base64Jpeg: String,
+        val timestampLabel: String
+    ) : SizzleIntent
     data class SelectArchetype(val archetype: LearnerArchetypeOption) : SizzleIntent
     data class SelectAttemptNumber(val attemptNumber: Int) : SizzleIntent
     data class UpdateReflectionText(val text: String) : SizzleIntent

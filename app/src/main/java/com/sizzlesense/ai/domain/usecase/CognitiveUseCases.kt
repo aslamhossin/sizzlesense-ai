@@ -7,21 +7,19 @@ import com.sizzlesense.ai.domain.model.TapoCameraConfig
 import com.sizzlesense.ai.domain.repository.EvaluationBenchmarkGateway
 import com.sizzlesense.ai.domain.repository.LiveTapoCameraGateway
 import com.sizzlesense.ai.domain.repository.SessionAnalysisGateway
+import javax.inject.Inject
 
-/**
- * SRP (Single Responsibility Principle) & Clean Architecture Dependency Rule:
- * Domain UseCase depends strictly on Domain models and Domain gateway interfaces (`Presentation -> Domain <- Data`).
- */
-class AnalyzeCookingSessionUseCase(
-    private val gateway: SessionAnalysisGateway,
+class AnalyzeCookingSessionUseCase @Inject constructor(
+    private val gateway: SessionAnalysisGateway
 ) {
+
     suspend operator fun invoke(
         baseUrl: String,
         archetypeId: String,
         attemptNumber: Int,
         learnerReflection: String,
         capturedFrameBase64: String?,
-        dishId: String = DEFAULT_DISH_ID,
+        dishId: String = DEFAULT_DISH_ID
     ): CognitiveCoachingResponse {
         val frames = capturedFrameBase64
             ?.takeIf { it.isNotBlank() }
@@ -34,9 +32,12 @@ class AnalyzeCookingSessionUseCase(
             attemptNumber = attemptNumber.coerceIn(1, 3),
             learnerReflection = learnerReflection.trim(),
             archetypeHint = archetypeId,
-            keyframeBase64List = frames,
+            keyframeBase64List = frames
         )
-        return gateway.analyzeSession(baseUrl = baseUrl, request = request)
+        return gateway.analyzeSession(
+            baseUrl = baseUrl,
+            request = request
+        )
     }
 
     companion object {
@@ -44,17 +45,15 @@ class AnalyzeCookingSessionUseCase(
     }
 }
 
-/**
- * SRP: Encapsulates live RTSP frame grab + Gemini 3 analysis from the kitchen Tapo C100 camera.
- */
-class CaptureLiveTapoSessionUseCase(
-    private val gateway: LiveTapoCameraGateway,
+class CaptureLiveTapoSessionUseCase @Inject constructor(
+    private val gateway: LiveTapoCameraGateway
 ) {
+
     suspend operator fun invoke(
         baseUrl: String,
         tapoConfig: TapoCameraConfig,
         attemptNumber: Int,
-        reflectionText: String,
+        reflectionText: String
     ): CognitiveCoachingResponse {
         require(tapoConfig.ipAddress.isNotBlank()) {
             "Tapo C100 IP address cannot be blank."
@@ -63,17 +62,15 @@ class CaptureLiveTapoSessionUseCase(
             baseUrl = baseUrl,
             tapoConfig = tapoConfig,
             attemptNumber = attemptNumber.coerceIn(1, 3),
-            reflectionText = reflectionText.trim(),
+            reflectionText = reflectionText.trim()
         )
     }
 }
 
-/**
- * SRP: Executes the 10-Session Human Learning Evaluation Suite.
- */
-class RunHumanLearningEvalUseCase(
-    private val gateway: EvaluationBenchmarkGateway,
+class RunHumanLearningEvalUseCase @Inject constructor(
+    private val gateway: EvaluationBenchmarkGateway
 ) {
+
     suspend operator fun invoke(baseUrl: String): EvalSuiteReport {
         return gateway.runEvaluationBenchmark(baseUrl = baseUrl)
     }

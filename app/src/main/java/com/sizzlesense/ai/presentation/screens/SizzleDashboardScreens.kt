@@ -44,7 +44,7 @@ import com.sizzlesense.ai.presentation.mvi.SizzleUiState
 @Composable
 fun SizzleMainScreen(
     state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit,
+    onIntent: (SizzleIntent) -> Unit
 ) {
     Scaffold(
         bottomBar = {
@@ -55,11 +55,16 @@ fun SizzleMainScreen(
                         onClick = { onIntent(SizzleIntent.SelectTab(tab)) },
                         icon = {
                             Text(
-                                tab.ordinal.plus(1).toString(),
+                                text = (tab.ordinal + 1).toString(),
                                 fontWeight = FontWeight.Bold
                             )
                         },
-                        label = { Text(tab.label, maxLines = 1) },
+                        label = {
+                            Text(
+                                text = tab.label,
+                                maxLines = 1
+                            )
+                        }
                     )
                 }
             }
@@ -70,23 +75,35 @@ fun SizzleMainScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            HeaderBar(state = state, onIntent = onIntent)
+            HeaderBar(
+                state = state,
+                onIntent = onIntent
+            )
 
             state.errorMessage?.let { err ->
                 DismissibleErrorBanner(
                     errorMessage = err,
-                    onDismiss = { onIntent(SizzleIntent.ClearError) },
+                    onDismiss = { onIntent(SizzleIntent.ClearError) }
                 )
             }
 
             Box(modifier = Modifier.weight(1f)) {
                 when (state.activeTab) {
-                    AppTab.KITCHEN_LIVE -> KitchenCaptureTab(state = state, onIntent = onIntent)
-                    AppTab.COACHING_LOOP -> CoachingLoopTab(state = state, onIntent = onIntent)
+                    AppTab.KITCHEN_LIVE -> KitchenCaptureTab(
+                        state = state,
+                        onIntent = onIntent
+                    )
+                    AppTab.COACHING_LOOP -> CoachingLoopTab(
+                        state = state,
+                        onIntent = onIntent
+                    )
                     AppTab.AI_XRAY -> AiXRayInspectorTab(state = state)
-                    AppTab.EVAL_BENCH -> EvalBenchTab(state = state, onIntent = onIntent)
+                    AppTab.EVAL_BENCH -> EvalBenchTab(
+                        state = state,
+                        onIntent = onIntent
+                    )
                 }
             }
         }
@@ -96,17 +113,17 @@ fun SizzleMainScreen(
 @Composable
 private fun HeaderBar(
     state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit,
+    onIntent: (SizzleIntent) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             text = "SizzleSense AI — Human Learning Coach",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.Bold
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             listOf(1, 2, 3).forEach { attempt ->
                 val done = state.attemptHistory.containsKey(attempt)
@@ -117,47 +134,45 @@ private fun HeaderBar(
                         Text(
                             text = if (done) "Attempt $attempt ✓" else "Attempt $attempt"
                         )
-                    },
+                    }
                 )
             }
         }
     }
 }
 
-/**
- * DRY helper extension to create a partial [SizzleIntent.UpdateTapoConfig] without repeating
- * unchanged fields across 4 text/switch callbacks.
- */
 private fun TapoCameraConfig.updateIntent(
     ipAddress: String = this.ipAddress,
     username: String = this.username,
     password: String = this.password,
-    useSubStream: Boolean = this.useSubStream,
+    useSubStream: Boolean = this.useSubStream
 ): SizzleIntent.UpdateTapoConfig = SizzleIntent.UpdateTapoConfig(
     ipAddress = ipAddress,
     username = username,
     password = password,
-    useSubStream = useSubStream,
+    useSubStream = useSubStream
 )
 
 @Composable
 private fun KitchenCaptureTab(
     state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit,
+    onIntent: (SizzleIntent) -> Unit
 ) {
     val tapo = state.tapoConfig
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         TapoRtspPlayerView(
             config = tapo,
-            onConnectToggle = { connect -> onIntent(SizzleIntent.SetTapoStreamConnected(connect)) },
+            onConnectToggle = { connect ->
+                onIntent(SizzleIntent.SetTapoStreamConnected(connect))
+            },
             onFrameCaptured = { b64, label ->
                 onIntent(SizzleIntent.OnLiveFrameCaptured(b64, label))
-            },
+            }
         )
 
         SizzleSectionCard(title = "Tapo C100 RTSP & Python AI Backend Settings") {
@@ -167,46 +182,46 @@ private fun KitchenCaptureTab(
                     onValueChange = { ip -> onIntent(tapo.updateIntent(ipAddress = ip)) },
                     label = { Text("Tapo Camera IP") },
                     singleLine = true,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = state.backendBaseUrl,
                     onValueChange = { url -> onIntent(SizzleIntent.UpdateBackendUrl(url)) },
                     label = { Text("Python AI Backend") },
                     singleLine = true,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = tapo.username,
-                    onValueChange = { u -> onIntent(tapo.updateIntent(username = u)) },
+                    onValueChange = { user -> onIntent(tapo.updateIntent(username = user)) },
                     label = { Text("Tapo Username") },
                     singleLine = true,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = tapo.password,
-                    onValueChange = { p -> onIntent(tapo.updateIntent(password = p)) },
+                    onValueChange = { pass -> onIntent(tapo.updateIntent(password = pass)) },
                     label = { Text("Tapo Password") },
                     singleLine = true,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
             }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     text = "Use 360p Substream (/stream2) for low-latency AI",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall
                 )
                 Switch(
                     checked = tapo.useSubStream,
-                    onCheckedChange = { sub -> onIntent(tapo.updateIntent(useSubStream = sub)) },
+                    onCheckedChange = { sub -> onIntent(tapo.updateIntent(useSubStream = sub)) }
                 )
             }
         }
@@ -217,7 +232,7 @@ private fun KitchenCaptureTab(
                     selected = state.selectedArchetype == option,
                     onClick = { onIntent(SizzleIntent.SelectArchetype(option)) },
                     label = { Text(option.title) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
@@ -226,34 +241,37 @@ private fun KitchenCaptureTab(
                 onValueChange = { onIntent(SizzleIntent.UpdateReflectionText(it)) },
                 label = { Text("Post-Cooking Learner Reflection (Voice / Transcript)") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
+                minLines = 3
             )
 
             Text(
                 text = "Frame status: ${state.capturedFrameLabel}",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
+                color = Color.Gray
             )
 
             if (state.isAnalyzing) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     CircularProgressIndicator()
-                    Text(state.activePipelineStageLabel, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = state.activePipelineStageLabel,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             } else {
                 Button(
                     onClick = { onIntent(SizzleIntent.AnalyzeCurrentSession) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Run 4-Stage Applied AI Coaching (Attempt ${state.currentAttemptNumber})")
                 }
 
                 OutlinedButton(
                     onClick = { onIntent(SizzleIntent.CaptureFromBackendTapoAndAnalyze) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Grab Live Tapo C100 Frame via Backend & Analyze")
                 }
@@ -265,11 +283,14 @@ private fun KitchenCaptureTab(
 @Composable
 private fun CoachingLoopTab(
     state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit,
+    onIntent: (SizzleIntent) -> Unit
 ) {
     val resp = state.latestCoachingResponse
     if (resp == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("No session analyzed yet.")
                 Spacer(modifier = Modifier.height(8.dp))
@@ -285,53 +306,62 @@ private fun CoachingLoopTab(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         SizzleSectionCard(
             title = resp.stage3TeachingDecision.selectedPrimaryIssue,
-            subtitle = "Single-Issue Focus (Attempt ${resp.attemptNumber})",
+            subtitle = "Single-Issue Focus (Attempt ${resp.attemptNumber})"
         ) {
             Text(
                 text = resp.stage4SensoryCoaching.coachingMessage,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium
             )
             HorizontalDivider()
             Text(
                 text = "Sensory Cues to Shift How You Judge:",
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.SemiBold
             )
             Text(
-                "👁 Visual: ${resp.stage4SensoryCoaching.visualCueToObserve}",
+                text = "👁 Visual: ${resp.stage4SensoryCoaching.visualCueToObserve}",
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                "👂 Auditory (Sizzle): ${resp.stage4SensoryCoaching.auditoryCueToListen}",
+                text = "👂 Auditory (Sizzle): ${resp.stage4SensoryCoaching.auditoryCueToListen}",
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                "👃 Aroma: ${resp.stage4SensoryCoaching.olfactoryOrTactileCue}",
+                text = "👃 Aroma: ${resp.stage4SensoryCoaching.olfactoryOrTactileCue}",
                 style = MaterialTheme.typography.bodySmall
             )
             HorizontalDivider()
             LabeledDetailRow(
                 label = "Next Attempt Micro-Experiment:",
-                value = resp.stage4SensoryCoaching.nextAttemptMicroExperiment,
+                value = resp.stage4SensoryCoaching.nextAttemptMicroExperiment
             )
         }
 
         SizzleSectionCard(title = "The 5 Core Cookpad JD Questions Answered") {
             val q = resp.fiveCoreQuestions
-            LabeledDetailRow("1. What is happening right now?", q.whatIsHappeningNow)
-            LabeledDetailRow("2. What do they understand vs. not yet?", q.whatTheyUnderstandVsNot)
-            LabeledDetailRow("3. Why did they make that decision?", q.whyTheyMadeThatDecision)
             LabeledDetailRow(
-                "4. What single thing should we teach now?",
-                q.whatSingleThingToTeachNow
+                label = "1. What is happening right now?",
+                value = q.whatIsHappeningNow
             )
             LabeledDetailRow(
-                "5. How to communicate to shift judgment?",
-                q.howToCommunicateToShiftJudgment
+                label = "2. What do they understand vs. not yet?",
+                value = q.whatTheyUnderstandVsNot
+            )
+            LabeledDetailRow(
+                label = "3. Why did they make that decision?",
+                value = q.whyTheyMadeThatDecision
+            )
+            LabeledDetailRow(
+                label = "4. What single thing should we teach now?",
+                value = q.whatSingleThingToTeachNow
+            )
+            LabeledDetailRow(
+                label = "5. How to communicate to shift judgment?",
+                value = q.howToCommunicateToShiftJudgment
             )
         }
     }
@@ -341,7 +371,10 @@ private fun CoachingLoopTab(
 private fun AiXRayInspectorTab(state: SizzleUiState) {
     val resp = state.latestCoachingResponse
     if (resp == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
             Text("Run a session analysis first to inspect the 4-Stage Cognitive Trace.")
         }
         return
@@ -351,59 +384,68 @@ private fun AiXRayInspectorTab(state: SizzleUiState) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         SizzleSectionCard(
             title = "Stage 1: Physical World Understanding",
-            subtitle = "Model: ${resp.visionModelUsed}",
+            subtitle = "Model: ${resp.visionModelUsed}"
         ) {
             LabeledDetailRow(
                 label = "Perception Gap: ${resp.stage1PhysicalObservation.perceptionGapLevel}",
-                value = resp.stage1PhysicalObservation.perceptionGapExplanation,
+                value = resp.stage1PhysicalObservation.perceptionGapExplanation
             )
             resp.stage1PhysicalObservation.cvMetrics?.let { cv ->
                 Text(
                     text = "CV Metrics -> Browning: ${cv.maillardBrowningRatio} | Moisture: ${cv.surfaceMoistureIndex} | Char: ${cv.charBurnRatio} | Regime: ${cv.dominantVisualRegime}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
-            Text("Inferred Physical States:", style = MaterialTheme.typography.labelMedium)
-            resp.stage1PhysicalObservation.inferredPhysicalStates.forEach { s ->
-                Text("• $s", style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = "Inferred Physical States:",
+                style = MaterialTheme.typography.labelMedium
+            )
+            resp.stage1PhysicalObservation.inferredPhysicalStates.forEach { stateLine ->
+                Text(
+                    text = "• $stateLine",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
 
         SizzleSectionCard(
             title = "Stage 2: Learner Latent State Estimation",
-            subtitle = "Model: ${resp.reasoningModelUsed}",
+            subtitle = "Model: ${resp.reasoningModelUsed}"
         ) {
             Text(
                 text = "Inferred Archetype: ${resp.stage2LearnerState.learnerArchetypeId}",
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = "Transfer Status: ${resp.stage2LearnerState.transferStatus} (Verified Shift: ${resp.stage2LearnerState.conceptualShiftVerified})",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall
             )
-            LabeledDetailRow("Decision Root Cause:", resp.stage2LearnerState.decisionRootCause)
             LabeledDetailRow(
-                "Longitudinal Delta:",
-                resp.stage2LearnerState.longitudinalDeltaSummary
+                label = "Decision Root Cause:",
+                value = resp.stage2LearnerState.decisionRootCause
+            )
+            LabeledDetailRow(
+                label = "Longitudinal Delta:",
+                value = resp.stage2LearnerState.longitudinalDeltaSummary
             )
         }
 
         SizzleSectionCard(title = "Stage 3: Pedagogical Restraint & Omitted Issues") {
             LabeledDetailRow(
                 label = "Selected Primary: ${resp.stage3TeachingDecision.selectedPrimaryIssue}",
-                value = resp.stage3TeachingDecision.causalPriorityRationale,
+                value = resp.stage3TeachingDecision.causalPriorityRationale
             )
             Text(
-                "Deliberately Suppressed Secondary Issues:",
+                text = "Deliberately Suppressed Secondary Issues:",
                 style = MaterialTheme.typography.labelMedium
             )
             resp.stage3TeachingDecision.deliberatelyOmittedIssues.forEach { omitted ->
                 Text(
-                    "• ${omitted.issue} — ${omitted.suppressionReason}",
+                    text = "• ${omitted.issue} — ${omitted.suppressionReason}",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -414,24 +456,24 @@ private fun AiXRayInspectorTab(state: SizzleUiState) {
 @Composable
 private fun EvalBenchTab(
     state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit,
+    onIntent: (SizzleIntent) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         SizzleSectionCard(
             title = "Human Learning Evaluation Benchmark (EvalBench)",
-            subtitle = "Evaluates 10 multi-session learner trajectories (3 JD Onion Archetypes × 3 Attempts + 1 Lucky-Timer Negative Control) across 5 rubrics.",
+            subtitle = "Evaluates 10 multi-session learner trajectories (3 JD Onion Archetypes × 3 Attempts + 1 Lucky-Timer Negative Control) across 5 rubrics."
         ) {
             if (state.isRunningEvals) {
                 CircularProgressIndicator()
             } else {
                 Button(
                     onClick = { onIntent(SizzleIntent.RunHumanLearningEvalSuite) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Run Full 10-Session Human Learning Eval Suite")
                 }
@@ -439,8 +481,9 @@ private fun EvalBenchTab(
         }
 
         state.evalSuiteReport?.let { report ->
+            val overallPct = (report.overallHumanLearningScore * 100).toInt()
             SizzleSectionCard(
-                title = "Overall Human Learning Score: ${(report.overallHumanLearningScore * 100).toInt()}% (${report.totalSessionsEvaluated} Sessions)"
+                title = "Overall Human Learning Score: $overallPct% (${report.totalSessionsEvaluated} Sessions)"
             ) {
                 Text("• Perception Gap Recall: ${(report.perceptionGapDetectionScore * 100).toInt()}%")
                 Text("• Latent Root-Cause Precision: ${(report.latentRootCauseAccuracy * 100).toInt()}%")
@@ -449,18 +492,21 @@ private fun EvalBenchTab(
                 Text("• Cross-Attempt Behavioral Transfer: ${(report.crossAttemptTransferScore * 100).toInt()}%")
             }
 
-            report.caseResults.forEach { c ->
+            report.caseResults.forEach { item ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Column(modifier = Modifier.padding(10.dp)) {
                         Text(
-                            text = "${c.caseId} (Attempt ${c.attemptNumber})",
+                            text = "${item.caseId} (Attempt ${item.attemptNumber})",
                             fontWeight = FontWeight.SemiBold,
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelLarge
                         )
-                        Text(c.summaryNote, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            text = item.summaryNote,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
