@@ -1,7 +1,8 @@
 package com.sizzlesense.ai.domain.repository
 
-import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
+import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 
 fun interface LiveTapoCameraGateway {
     suspend fun captureFromBackendTapoAndAnalyze(
@@ -9,5 +10,5 @@ fun interface LiveTapoCameraGateway {
         tapoConfig: TapoCameraConfig,
         attemptNumber: Int,
         reflectionText: String
-    ): CognitiveCoachingResponse
+    ): AppResult<CognitiveCoachingResponse>
 }

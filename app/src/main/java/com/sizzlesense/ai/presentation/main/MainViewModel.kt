@@ -1,12 +1,9 @@
 package com.sizzlesense.ai.presentation.main
 
-import androidx.lifecycle.viewModelScope
 import com.sizzlesense.ai.core.ui.BaseViewModel
 import com.sizzlesense.ai.domain.repository.SessionStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -14,16 +11,14 @@ class MainViewModel @Inject constructor(
 ) : BaseViewModel<MainUiState, MainUiIntent, MainUiEffect>(MainUiState()) {
 
     init {
-        sessionStore.sessionState
-            .onEach { session ->
-                updateState { state ->
-                    state.copy(
-                        currentAttemptNumber = session.currentAttemptNumber,
-                        completedAttemptNumbers = session.attemptHistory.keys
-                    )
-                }
+        sessionStore.sessionState.collectWhileSubscribed { session ->
+            updateState { state ->
+                state.copy(
+                    currentAttemptNumber = session.currentAttemptNumber,
+                    completedAttemptNumbers = session.attemptHistory.keys
+                )
             }
-            .launchIn(viewModelScope)
+        }
     }
 
     override fun onIntent(intent: MainUiIntent) {

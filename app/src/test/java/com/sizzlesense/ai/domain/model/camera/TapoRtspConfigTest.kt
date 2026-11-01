@@ -1,6 +1,4 @@
-package com.sizzlesense.ai.domain.model
-
-import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
+package com.sizzlesense.ai.domain.model.camera
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

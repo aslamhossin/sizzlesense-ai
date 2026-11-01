@@ -1,6 +1,6 @@
 package com.sizzlesense.ai.presentation.kitchen
 
-import androidx.lifecycle.viewModelScope
+import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.core.ui.BaseViewModel
 import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.session.SessionSnapshot
@@ -9,8 +9,6 @@ import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @HiltViewModel
 class KitchenViewModel @Inject constructor(
@@ -20,21 +18,18 @@ class KitchenViewModel @Inject constructor(
 ) : BaseViewModel<KitchenUiState, KitchenUiIntent, KitchenUiEffect>(KitchenUiState()) {
 
     init {
-        sessionStore.sessionState
-            .onEach { session ->
-                updateState { state ->
-                    state.copy(
-                        backendBaseUrl = session.backendBaseUrl,
-                        tapoConfig = session.tapoConfig,
-                        capturedFrameBase64 = session.capturedFrameBase64,
-                        capturedFrameLabel = session.capturedFrameLabel,
-                        selectedArchetype = session.selectedArchetype,
-                        currentAttemptNumber = session.currentAttemptNumber,
-                        learnerReflectionText = session.learnerReflectionText
-                    )
-                }
+        sessionStore.sessionState.collectWhileSubscribed { session ->
+            updateState { state ->
+                state.copy(
+                    backendBaseUrl = session.backendBaseUrl,
+                    tapoConfig = session.tapoConfig,
+                    capturedFrameLabel = session.capturedFrameLabel,
+                    selectedArchetype = session.selectedArchetype,
+                    currentAttemptNumber = session.currentAttemptNumber,
+                    learnerReflectionText = session.learnerReflectionText
+                )
             }
-            .launchIn(viewModelScope)
+        }
     }
 
     override fun onIntent(intent: KitchenUiIntent) {
@@ -115,7 +110,7 @@ class KitchenViewModel @Inject constructor(
 
     private fun executePipelineTask(
         stageLabel: String,
-        block: suspend (SessionSnapshot) -> CognitiveCoachingResponse
+        block: suspend (SessionSnapshot) -> AppResult<CognitiveCoachingResponse>
     ) {
         val snapshot = sessionStore.sessionState.value
         updateState {
@@ -125,7 +120,18 @@ class KitchenViewModel @Inject constructor(
                 errorMessage = null
             )
         }
-        launchTask(
+        launchResultTask(
+            onSuccess = { response ->
+                sessionStore.recordCoachingResponse(response)
+                updateState {
+                    it.copy(
+                        isAnalyzing = false,
+                        activePipelineStageLabel = "Completed (${response.reasoningModelUsed})",
+                        errorMessage = null
+                    )
+                }
+                emitEffect(KitchenUiEffect.NavigateToCoaching)
+            },
             onError = { appError ->
                 updateState {
                     it.copy(
@@ -136,16 +142,7 @@ class KitchenViewModel @Inject constructor(
                 }
             }
         ) {
-            val response = block(snapshot)
-            sessionStore.recordCoachingResponse(response)
-            updateState {
-                it.copy(
-                    isAnalyzing = false,
-                    activePipelineStageLabel = "Completed (${response.reasoningModelUsed})",
-                    errorMessage = null
-                )
-            }
-            emitEffect(KitchenUiEffect.NavigateToCoaching)
+            block(snapshot)
         }
     }
 }

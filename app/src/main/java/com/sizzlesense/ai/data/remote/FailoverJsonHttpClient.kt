@@ -18,7 +18,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 @Singleton
 class FailoverJsonHttpClient @Inject constructor(
-    val json: Json,
+    private val json: Json,
     private val httpClient: OkHttpClient,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
@@ -32,12 +32,42 @@ class FailoverJsonHttpClient @Inject constructor(
         ).filter { it.isNotBlank() }.distinct()
     }
 
+    suspend fun <REQ, RES> postTypedJsonWithFailover(
+        primaryBaseUrl: String,
+        endpointPath: String,
+        requestBody: REQ,
+        requestSerializer: KSerializer<REQ>,
+        responseSerializer: KSerializer<RES>
+    ): AppResult<RES> = safeApiCall(ioDispatcher) {
+        val encodedBody = json.encodeToString(requestSerializer, requestBody)
+        executeFailoverPost(
+            primaryBaseUrl = primaryBaseUrl,
+            endpointPath = endpointPath,
+            jsonBody = encodedBody,
+            responseSerializer = responseSerializer
+        )
+    }
+
     suspend fun <T> postJsonWithFailover(
         primaryBaseUrl: String,
         endpointPath: String,
         jsonBody: String,
         responseSerializer: KSerializer<T>
     ): AppResult<T> = safeApiCall(ioDispatcher) {
+        executeFailoverPost(
+            primaryBaseUrl = primaryBaseUrl,
+            endpointPath = endpointPath,
+            jsonBody = jsonBody,
+            responseSerializer = responseSerializer
+        )
+    }
+
+    private fun <T> executeFailoverPost(
+        primaryBaseUrl: String,
+        endpointPath: String,
+        jsonBody: String,
+        responseSerializer: KSerializer<T>
+    ): T {
         val candidates = resolveCandidateEndpoints(primaryBaseUrl)
         val mediaType = JSON_MEDIA_TYPE.toMediaType()
         var lastError: AppError = AppError.NetworkUnavailable("No candidate endpoints configured")
@@ -52,7 +82,7 @@ class FailoverJsonHttpClient @Inject constructor(
                 httpClient.newCall(request).execute().use { response ->
                     val rawBody = response.body.string()
                     if (response.isSuccessful && rawBody.isNotBlank()) {
-                        return@safeApiCall json.decodeFromString(responseSerializer, rawBody)
+                        return json.decodeFromString(responseSerializer, rawBody)
                     } else {
                         lastError = AppError.HttpError(
                             statusCode = response.code,
@@ -61,6 +91,8 @@ class FailoverJsonHttpClient @Inject constructor(
                     }
                 }
             } catch (e: CancellationException) {
+                throw e
+            } catch (e: kotlinx.serialization.SerializationException) {
                 throw e
             } catch (e: Exception) {
                 lastError = AppError.NetworkUnavailable(

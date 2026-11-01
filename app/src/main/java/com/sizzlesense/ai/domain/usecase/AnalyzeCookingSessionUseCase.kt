@@ -1,5 +1,6 @@
 package com.sizzlesense.ai.domain.usecase
 
+import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.session.SessionAnalyzeRequest
 import com.sizzlesense.ai.domain.repository.SessionAnalysisGateway
@@ -16,7 +17,7 @@ class AnalyzeCookingSessionUseCase @Inject constructor(
         learnerReflection: String,
         capturedFrameBase64: String?,
         dishId: String = DEFAULT_DISH_ID
-    ): CognitiveCoachingResponse {
+    ): AppResult<CognitiveCoachingResponse> {
         val frames = capturedFrameBase64
             ?.takeIf { it.isNotBlank() }
             ?.let { listOf(it) }

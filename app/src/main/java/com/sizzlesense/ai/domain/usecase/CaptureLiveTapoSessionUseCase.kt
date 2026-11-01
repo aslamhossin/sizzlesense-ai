@@ -1,7 +1,9 @@
 package com.sizzlesense.ai.domain.usecase
 
-import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
+import com.sizzlesense.ai.core.result.AppError
+import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
+import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.repository.LiveTapoCameraGateway
 import javax.inject.Inject
 
@@ -14,9 +16,11 @@ class CaptureLiveTapoSessionUseCase @Inject constructor(
         tapoConfig: TapoCameraConfig,
         attemptNumber: Int,
         reflectionText: String
-    ): CognitiveCoachingResponse {
-        require(tapoConfig.ipAddress.isNotBlank()) {
-            "Tapo C100 IP address cannot be blank."
+    ): AppResult<CognitiveCoachingResponse> {
+        if (tapoConfig.ipAddress.isBlank()) {
+            return AppResult.Failure(
+                AppError.ValidationError("Tapo C100 IP address cannot be blank.")
+            )
         }
         return gateway.captureFromBackendTapoAndAnalyze(
             baseUrl = baseUrl,

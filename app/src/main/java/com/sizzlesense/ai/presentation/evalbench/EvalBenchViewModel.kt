@@ -1,13 +1,10 @@
 package com.sizzlesense.ai.presentation.evalbench
 
-import androidx.lifecycle.viewModelScope
 import com.sizzlesense.ai.core.ui.BaseViewModel
 import com.sizzlesense.ai.domain.repository.SessionStore
 import com.sizzlesense.ai.domain.usecase.RunHumanLearningEvalUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @HiltViewModel
 class EvalBenchViewModel @Inject constructor(
@@ -16,13 +13,11 @@ class EvalBenchViewModel @Inject constructor(
 ) : BaseViewModel<EvalBenchUiState, EvalBenchUiIntent, EvalBenchUiEffect>(EvalBenchUiState()) {
 
     init {
-        sessionStore.sessionState
-            .onEach { session ->
-                updateState { state ->
-                    state.copy(evalSuiteReport = session.evalSuiteReport)
-                }
+        sessionStore.sessionState.collectWhileSubscribed { session ->
+            updateState { state ->
+                state.copy(evalSuiteReport = session.evalSuiteReport)
             }
-            .launchIn(viewModelScope)
+        }
     }
 
     override fun onIntent(intent: EvalBenchUiIntent) {
@@ -37,7 +32,11 @@ class EvalBenchViewModel @Inject constructor(
     private fun executeEvalSuite() {
         val baseUrl = sessionStore.sessionState.value.backendBaseUrl
         updateState { it.copy(isRunningEvals = true, errorMessage = null) }
-        launchTask(
+        launchResultTask(
+            onSuccess = { report ->
+                sessionStore.recordEvalSuiteReport(report)
+                updateState { it.copy(isRunningEvals = false, errorMessage = null) }
+            },
             onError = { appError ->
                 updateState {
                     it.copy(
@@ -47,9 +46,7 @@ class EvalBenchViewModel @Inject constructor(
                 }
             }
         ) {
-            val report = runHumanLearningEval(baseUrl = baseUrl)
-            sessionStore.recordEvalSuiteReport(report)
-            updateState { it.copy(isRunningEvals = false, errorMessage = null) }
+            runHumanLearningEval(baseUrl = baseUrl)
         }
     }
 }

@@ -1,13 +1,10 @@
 package com.sizzlesense.ai.presentation.coaching
 
-import androidx.lifecycle.viewModelScope
 import com.sizzlesense.ai.core.ui.BaseViewModel
 import com.sizzlesense.ai.domain.repository.SessionStore
 import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @HiltViewModel
 class CoachingViewModel @Inject constructor(
@@ -16,16 +13,14 @@ class CoachingViewModel @Inject constructor(
 ) : BaseViewModel<CoachingUiState, CoachingUiIntent, CoachingUiEffect>(CoachingUiState()) {
 
     init {
-        sessionStore.sessionState
-            .onEach { session ->
-                updateState { state ->
-                    state.copy(
-                        currentAttemptNumber = session.currentAttemptNumber,
-                        latestCoachingResponse = session.latestCoachingResponse
-                    )
-                }
+        sessionStore.sessionState.collectWhileSubscribed { session ->
+            updateState { state ->
+                state.copy(
+                    currentAttemptNumber = session.currentAttemptNumber,
+                    latestCoachingResponse = session.latestCoachingResponse
+                )
             }
-            .launchIn(viewModelScope)
+        }
     }
 
     override fun onIntent(intent: CoachingUiIntent) {
@@ -40,7 +35,11 @@ class CoachingViewModel @Inject constructor(
     private fun analyzeAttempt() {
         val snapshot = sessionStore.sessionState.value
         updateState { it.copy(isAnalyzing = true, errorMessage = null) }
-        launchTask(
+        launchResultTask(
+            onSuccess = { response ->
+                sessionStore.recordCoachingResponse(response)
+                updateState { it.copy(isAnalyzing = false, errorMessage = null) }
+            },
             onError = { appError ->
                 updateState {
                     it.copy(
@@ -50,15 +49,13 @@ class CoachingViewModel @Inject constructor(
                 }
             }
         ) {
-            val response = analyzeCookingSession(
+            analyzeCookingSession(
                 baseUrl = snapshot.backendBaseUrl,
                 archetypeId = snapshot.selectedArchetype.id,
                 attemptNumber = snapshot.currentAttemptNumber,
                 learnerReflection = snapshot.learnerReflectionText,
                 capturedFrameBase64 = snapshot.capturedFrameBase64
             )
-            sessionStore.recordCoachingResponse(response)
-            updateState { it.copy(isAnalyzing = false, errorMessage = null) }
         }
     }
 }

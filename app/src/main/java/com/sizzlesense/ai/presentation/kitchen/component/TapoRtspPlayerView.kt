@@ -21,12 +21,16 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -37,6 +41,9 @@ import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -47,6 +54,8 @@ fun TapoRtspPlayerView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
     var textureViewRef by remember { mutableStateOf<TextureView?>(null) }
 
     val exoPlayer = remember(
@@ -71,8 +80,21 @@ fun TapoRtspPlayerView(
         }
     }
 
-    DisposableEffect(exoPlayer) {
+    DisposableEffect(exoPlayer, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> exoPlayer?.pause()
+                Lifecycle.Event.ON_START -> {
+                    if (config.isConnected) {
+                        exoPlayer?.play()
+                    }
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
             exoPlayer?.release()
         }
     }
@@ -136,13 +158,16 @@ fun TapoRtspPlayerView(
 
             OutlinedButton(
                 onClick = {
-                    val bmp = textureViewRef?.bitmap
-                    if (bmp != null) {
-                        val scaled = Bitmap.createScaledBitmap(bmp, 256, 256, true)
-                        val out = ByteArrayOutputStream()
-                        scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
-                        val b64 = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
-                        val ts = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
+                    val bmp = textureViewRef?.bitmap ?: return@OutlinedButton
+                    coroutineScope.launch {
+                        val (b64, ts) = withContext(Dispatchers.Default) {
+                            val scaled = Bitmap.createScaledBitmap(bmp, 256, 256, true)
+                            val out = ByteArrayOutputStream()
+                            scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                            val encoded = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+                            val timestamp = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
+                            encoded to timestamp
+                        }
                         onFrameCaptured(b64, "Captured from ExoPlayer RTSP at $ts")
                     }
                 },

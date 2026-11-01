@@ -53,7 +53,7 @@ class LocalFallbackCognitiveDataSource @Inject constructor() {
             learnerId = request.learnerId,
             dishId = request.dishId,
             attemptNumber = request.attemptNumber,
-            reasoningModelUsed = "gemini-3-flash-preview (On-Device MVI Fallback)",
+            reasoningModelUsed = "Offline Demo Simulation (Backend Unreachable)",
             visionModelUsed = "On-Device CV + Media3 RTSP",
             fiveCoreQuestions = FiveCoreQuestionsSummary(
                 whatIsHappeningNow = if (isAttempt1) {

@@ -4,18 +4,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppException
+import com.sizzlesense.ai.core.result.AppResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
  * Base [ViewModel] implementing [UnidirectionalViewModel] with Kotlin Explicit Backing Fields
- * (`field = MutableStateFlow(...)`), buffered one-off [effects], and [AppError] mapping.
+ * (`field = MutableStateFlow(...)`), buffered one-off [effects], and [AppResult] / [AppError] handling.
  */
 abstract class BaseViewModel<STATE, INTENT, EFFECT>(
     initialState: STATE
@@ -40,13 +45,30 @@ abstract class BaseViewModel<STATE, INTENT, EFFECT>(
         }
     }
 
-    protected fun launchTask(
+    protected fun <T> Flow<T>.collectWhileSubscribed(
+        stopTimeoutMillis: Long = 5_000L,
+        action: suspend (T) -> Unit
+    ) {
+        this.shareIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis),
+            replay = 1
+        )
+            .onEach(action)
+            .launchIn(viewModelScope)
+    }
+
+    protected fun <T> launchResultTask(
+        onSuccess: suspend (T) -> Unit,
         onError: (AppError) -> Unit = {},
-        block: suspend () -> Unit
+        block: suspend () -> AppResult<T>
     ) {
         viewModelScope.launch {
             try {
-                block()
+                when (val result = block()) {
+                    is AppResult.Success -> onSuccess(result.data)
+                    is AppResult.Failure -> onError(result.error)
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: AppException) {

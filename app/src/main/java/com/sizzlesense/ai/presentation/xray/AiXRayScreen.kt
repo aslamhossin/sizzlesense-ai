@@ -55,7 +55,10 @@ fun AiXRayScreen(
         )
         Stage3PedagogicalRestraintCard(
             stage3 = resp.stage3TeachingDecision,
-            showSuppressedIssues = state.showSuppressedIssues
+            showSuppressedIssues = state.showSuppressedIssues,
+            onToggleSuppressedIssues = { visible ->
+                onIntent(AiXRayUiIntent.ToggleSuppressedIssues(visible))
+            }
         )
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.sizzlesense.ai.presentation.coaching.CoachingRoute
 import com.sizzlesense.ai.presentation.evalbench.EvalBenchRoute
@@ -31,6 +32,9 @@ fun SizzleNavGraph(
     NavDisplay(
         backStack = backStack,
         modifier = modifier,
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator()
+        ),
         onBack = {
             if (backStack.size > 1) {
                 backStack.removeLastOrNull()

@@ -7,7 +7,6 @@ import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 data class KitchenUiState(
     val backendBaseUrl: String = BuildConfig.DEFAULT_BACKEND_URL,
     val tapoConfig: TapoCameraConfig = TapoCameraConfig(ipAddress = BuildConfig.DEFAULT_TAPO_IP),
-    val capturedFrameBase64: String? = null,
     val capturedFrameLabel: String = "No live frame captured yet",
     val selectedArchetype: LearnerArchetypeOption = LearnerArchetypeOption.MOISTURE_BLINDNESS,
     val currentAttemptNumber: Int = 1,
