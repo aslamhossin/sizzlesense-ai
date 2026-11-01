@@ -1,48 +1,35 @@
 package com.sizzlesense.ai.presentation.xray
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sizzlesense.ai.core.ui.BaseViewModel
 import com.sizzlesense.ai.domain.repository.SessionStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @HiltViewModel
 class AiXRayViewModel @Inject constructor(
     sessionStore: SessionStore
-) : ViewModel() {
+) : BaseViewModel<AiXRayUiState, AiXRayUiIntent, AiXRayUiEffect>(AiXRayUiState()) {
 
-    private val showSuppressedIssues = MutableStateFlow(true)
+    init {
+        sessionStore.sessionState
+            .onEach { session ->
+                updateState { state ->
+                    state.copy(
+                        currentAttemptNumber = session.currentAttemptNumber,
+                        latestCoachingResponse = session.latestCoachingResponse
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+    }
 
-    private val _effects = MutableSharedFlow<AiXRayUiEffect>()
-    val effects: SharedFlow<AiXRayUiEffect> = _effects.asSharedFlow()
-
-    val uiState: StateFlow<AiXRayUiState> = combine(
-        sessionStore.sessionState,
-        showSuppressedIssues
-    ) { session, showSuppressed ->
-        AiXRayUiState(
-            currentAttemptNumber = session.currentAttemptNumber,
-            latestCoachingResponse = session.latestCoachingResponse,
-            showSuppressedIssues = showSuppressed
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = AiXRayUiState()
-    )
-
-    fun onIntent(intent: AiXRayUiIntent) {
+    override fun onIntent(intent: AiXRayUiIntent) {
         when (intent) {
             is AiXRayUiIntent.ToggleSuppressedIssues -> {
-                showSuppressedIssues.value = intent.visible
+                updateState { it.copy(showSuppressedIssues = intent.visible) }
             }
         }
     }

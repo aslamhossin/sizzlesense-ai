@@ -1,7 +1,7 @@
 package com.sizzlesense.ai.presentation.kitchen
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sizzlesense.ai.core.ui.BaseViewModel
 import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.session.SessionSnapshot
 import com.sizzlesense.ai.domain.repository.SessionStore
@@ -9,59 +9,35 @@ import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @HiltViewModel
 class KitchenViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val analyzeCookingSession: AnalyzeCookingSessionUseCase,
     private val captureLiveTapoSession: CaptureLiveTapoSessionUseCase
-) : ViewModel() {
+) : BaseViewModel<KitchenUiState, KitchenUiIntent, KitchenUiEffect>(KitchenUiState()) {
 
-    private data class ExecutionStatus(
-        val isAnalyzing: Boolean = false,
-        val stageLabel: String = "Idle — Ready for Kitchen Session",
-        val errorMessage: String? = null
-    )
+    init {
+        sessionStore.sessionState
+            .onEach { session ->
+                updateState { state ->
+                    state.copy(
+                        backendBaseUrl = session.backendBaseUrl,
+                        tapoConfig = session.tapoConfig,
+                        capturedFrameBase64 = session.capturedFrameBase64,
+                        capturedFrameLabel = session.capturedFrameLabel,
+                        selectedArchetype = session.selectedArchetype,
+                        currentAttemptNumber = session.currentAttemptNumber,
+                        learnerReflectionText = session.learnerReflectionText
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+    }
 
-    private val executionStatus = MutableStateFlow(ExecutionStatus())
-
-    private val _effects = MutableSharedFlow<KitchenUiEffect>()
-    val effects: SharedFlow<KitchenUiEffect> = _effects.asSharedFlow()
-
-    val uiState: StateFlow<KitchenUiState> = combine(
-        sessionStore.sessionState,
-        executionStatus
-    ) { session, exec ->
-        KitchenUiState(
-            backendBaseUrl = session.backendBaseUrl,
-            tapoConfig = session.tapoConfig,
-            capturedFrameBase64 = session.capturedFrameBase64,
-            capturedFrameLabel = session.capturedFrameLabel,
-            selectedArchetype = session.selectedArchetype,
-            currentAttemptNumber = session.currentAttemptNumber,
-            learnerReflectionText = session.learnerReflectionText,
-            isAnalyzing = exec.isAnalyzing,
-            activePipelineStageLabel = exec.stageLabel,
-            errorMessage = exec.errorMessage
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = KitchenUiState()
-    )
-
-    fun onIntent(intent: KitchenUiIntent) {
+    override fun onIntent(intent: KitchenUiIntent) {
         when (intent) {
             is KitchenUiIntent.UpdateBackendUrl -> {
                 sessionStore.updateBackendUrl(intent.url)
@@ -104,7 +80,7 @@ class KitchenViewModel @Inject constructor(
             KitchenUiIntent.CaptureFromBackendTapoAndAnalyze -> runBackendTapoLiveCapture()
 
             KitchenUiIntent.ClearError -> {
-                executionStatus.update { it.copy(errorMessage = null) }
+                updateState { it.copy(errorMessage = null) }
             }
         }
     }
@@ -145,36 +121,34 @@ class KitchenViewModel @Inject constructor(
         block: suspend (SessionSnapshot) -> CognitiveCoachingResponse
     ) {
         val snapshot = sessionStore.sessionState.value
-        viewModelScope.launch {
-            executionStatus.update {
-                ExecutionStatus(
-                    isAnalyzing = true,
-                    stageLabel = stageLabel,
+        updateState {
+            it.copy(
+                isAnalyzing = true,
+                activePipelineStageLabel = stageLabel,
+                errorMessage = null
+            )
+        }
+        launchTask(
+            onError = { error ->
+                updateState {
+                    it.copy(
+                        isAnalyzing = false,
+                        activePipelineStageLabel = "Error occurred",
+                        errorMessage = error.message ?: fallbackError
+                    )
+                }
+            }
+        ) {
+            val response = block(snapshot)
+            sessionStore.recordCoachingResponse(response)
+            updateState {
+                it.copy(
+                    isAnalyzing = false,
+                    activePipelineStageLabel = "Completed (${response.reasoningModelUsed})",
                     errorMessage = null
                 )
             }
-            try {
-                val response = block(snapshot)
-                sessionStore.recordCoachingResponse(response)
-                executionStatus.update {
-                    ExecutionStatus(
-                        isAnalyzing = false,
-                        stageLabel = "Completed (${response.reasoningModelUsed})",
-                        errorMessage = null
-                    )
-                }
-                _effects.emit(KitchenUiEffect.NavigateToCoaching)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                executionStatus.update {
-                    ExecutionStatus(
-                        isAnalyzing = false,
-                        stageLabel = "Error occurred",
-                        errorMessage = e.message ?: fallbackError
-                    )
-                }
-            }
+            emitEffect(KitchenUiEffect.NavigateToCoaching)
         }
     }
 }
