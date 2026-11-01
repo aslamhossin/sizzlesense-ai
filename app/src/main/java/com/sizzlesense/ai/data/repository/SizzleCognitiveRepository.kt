@@ -2,6 +2,11 @@ package com.sizzlesense.ai.data.repository
 
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
+import com.sizzlesense.ai.data.remote.dto.CognitiveCoachingResponseDto
+import com.sizzlesense.ai.data.remote.dto.EvalSuiteReportDto
+import com.sizzlesense.ai.data.remote.dto.SessionAnalyzeRequestDto
+import com.sizzlesense.ai.data.remote.dto.toDomain
+import com.sizzlesense.ai.data.remote.dto.toDto
 import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.EvalSuiteReport
 import com.sizzlesense.ai.domain.model.SessionAnalyzeRequest
@@ -22,16 +27,19 @@ class SizzleCognitiveRepository @Inject constructor(
         baseUrl: String,
         request: SessionAnalyzeRequest
     ): CognitiveCoachingResponse {
+        val requestDto = request.toDto()
         val bodyString = remoteClient.json.encodeToString(
-            SessionAnalyzeRequest.serializer(),
-            request
+            SessionAnalyzeRequestDto.serializer(),
+            requestDto
         )
         return remoteClient.postJsonWithFailover(
             primaryBaseUrl = baseUrl,
             endpointPath = "/api/v1/sessions/analyze",
             jsonBody = bodyString,
-            responseSerializer = CognitiveCoachingResponse.serializer()
-        ).getOrElse {
+            responseSerializer = CognitiveCoachingResponseDto.serializer()
+        ).map { dto ->
+            dto.toDomain()
+        }.getOrElse {
             localFallback.buildFallbackCoachingResponse(request)
         }
     }
@@ -56,8 +64,10 @@ class SizzleCognitiveRepository @Inject constructor(
             primaryBaseUrl = baseUrl,
             endpointPath = "/api/v1/camera/tapo-live-analyze",
             jsonBody = payload,
-            responseSerializer = CognitiveCoachingResponse.serializer()
-        ).getOrElse { error ->
+            responseSerializer = CognitiveCoachingResponseDto.serializer()
+        ).map { dto ->
+            dto.toDomain()
+        }.getOrElse { error ->
             throw IllegalStateException(
                 "Live Tapo backend capture failed (${error.message}). Check username/password or backend URL.",
                 error
@@ -70,8 +80,10 @@ class SizzleCognitiveRepository @Inject constructor(
             primaryBaseUrl = baseUrl,
             endpointPath = "/api/v1/evals/run",
             jsonBody = "{}",
-            responseSerializer = EvalSuiteReport.serializer()
-        ).getOrElse {
+            responseSerializer = EvalSuiteReportDto.serializer()
+        ).map { dto ->
+            dto.toDomain()
+        }.getOrElse {
             localFallback.buildFallbackEvalReport()
         }
     }
