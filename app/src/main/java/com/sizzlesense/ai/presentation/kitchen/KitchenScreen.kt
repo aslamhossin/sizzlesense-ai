@@ -1,4 +1,4 @@
-package com.sizzlesense.ai.presentation.screens
+package com.sizzlesense.ai.presentation.kitchen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,31 +22,44 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.data.camera.TapoRtspPlayerView
+import com.sizzlesense.ai.domain.model.LearnerArchetypeOption
 import com.sizzlesense.ai.domain.model.TapoCameraConfig
+import com.sizzlesense.ai.presentation.components.DismissibleErrorBanner
 import com.sizzlesense.ai.presentation.components.SizzleSectionCard
-import com.sizzlesense.ai.presentation.mvi.LearnerArchetypeOption
-import com.sizzlesense.ai.presentation.mvi.SizzleIntent
-import com.sizzlesense.ai.presentation.mvi.SizzleUiState
 
 @Composable
-fun KitchenCaptureRoute(
-    state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit
+fun KitchenRoute(
+    onNavigateToCoaching: () -> Unit,
+    viewModel: KitchenViewModel = hiltViewModel()
 ) {
-    KitchenCaptureScreen(
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                KitchenUiEffect.NavigateToCoaching -> onNavigateToCoaching()
+            }
+        }
+    }
+
+    KitchenScreen(
         state = state,
-        onIntent = onIntent
+        onIntent = viewModel::onIntent
     )
 }
 
 @Composable
-fun KitchenCaptureScreen(
-    state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit
+fun KitchenScreen(
+    state: KitchenUiState,
+    onIntent: (KitchenUiIntent) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -54,13 +67,20 @@ fun KitchenCaptureScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        state.errorMessage?.let { err ->
+            DismissibleErrorBanner(
+                errorMessage = err,
+                onDismiss = { onIntent(KitchenUiIntent.ClearError) }
+            )
+        }
+
         TapoRtspPlayerView(
             config = state.tapoConfig,
             onConnectToggle = { connect ->
-                onIntent(SizzleIntent.SetTapoStreamConnected(connect))
+                onIntent(KitchenUiIntent.SetTapoStreamConnected(connect))
             },
             onFrameCaptured = { b64, label ->
-                onIntent(SizzleIntent.OnLiveFrameCaptured(b64, label))
+                onIntent(KitchenUiIntent.OnLiveFrameCaptured(b64, label))
             }
         )
 
@@ -81,7 +101,7 @@ fun KitchenCaptureScreen(
 private fun TapoBackendSettingsCard(
     tapo: TapoCameraConfig,
     backendBaseUrl: String,
-    onIntent: (SizzleIntent) -> Unit
+    onIntent: (KitchenUiIntent) -> Unit
 ) {
     SizzleSectionCard(
         title = "Tapo C100 RTSP & Python AI Backend",
@@ -98,7 +118,7 @@ private fun TapoBackendSettingsCard(
             )
             OutlinedTextField(
                 value = backendBaseUrl,
-                onValueChange = { url -> onIntent(SizzleIntent.UpdateBackendUrl(url)) },
+                onValueChange = { url -> onIntent(KitchenUiIntent.UpdateBackendUrl(url)) },
                 label = { Text("Python AI Backend") },
                 singleLine = true,
                 modifier = Modifier.weight(1f)
@@ -142,8 +162,8 @@ private fun TapoBackendSettingsCard(
 
 @Composable
 private fun OnionArchetypeScenarioCard(
-    state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit
+    state: KitchenUiState,
+    onIntent: (KitchenUiIntent) -> Unit
 ) {
     SizzleSectionCard(
         title = "3 Cookpad JD Sautéed Onion Learner Archetypes",
@@ -153,7 +173,7 @@ private fun OnionArchetypeScenarioCard(
         LearnerArchetypeOption.entries.forEach { option ->
             FilterChip(
                 selected = state.selectedArchetype == option,
-                onClick = { onIntent(SizzleIntent.SelectArchetype(option)) },
+                onClick = { onIntent(KitchenUiIntent.SelectArchetype(option)) },
                 label = { Text(option.title) },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -161,7 +181,7 @@ private fun OnionArchetypeScenarioCard(
 
         OutlinedTextField(
             value = state.learnerReflectionText,
-            onValueChange = { onIntent(SizzleIntent.UpdateReflectionText(it)) },
+            onValueChange = { onIntent(KitchenUiIntent.UpdateReflectionText(it)) },
             label = { Text("Post-Cooking Learner Reflection (Voice / Transcript)") },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3
@@ -177,8 +197,8 @@ private fun OnionArchetypeScenarioCard(
             isAnalyzing = state.isAnalyzing,
             activePipelineStageLabel = state.activePipelineStageLabel,
             currentAttemptNumber = state.currentAttemptNumber,
-            onAnalyzeSession = { onIntent(SizzleIntent.AnalyzeCurrentSession) },
-            onCaptureLiveTapo = { onIntent(SizzleIntent.CaptureFromBackendTapoAndAnalyze) }
+            onAnalyzeSession = { onIntent(KitchenUiIntent.AnalyzeCurrentSession) },
+            onCaptureLiveTapo = { onIntent(KitchenUiIntent.CaptureFromBackendTapoAndAnalyze) }
         )
     }
 }
@@ -232,7 +252,7 @@ private fun TapoCameraConfig.updateIntent(
     username: String = this.username,
     password: String = this.password,
     useSubStream: Boolean = this.useSubStream
-): SizzleIntent.UpdateTapoConfig = SizzleIntent.UpdateTapoConfig(
+): KitchenUiIntent.UpdateTapoConfig = KitchenUiIntent.UpdateTapoConfig(
     ipAddress = ipAddress,
     username = username,
     password = password,

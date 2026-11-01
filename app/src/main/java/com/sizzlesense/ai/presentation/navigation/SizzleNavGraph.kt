@@ -7,23 +7,21 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
-import com.sizzlesense.ai.presentation.mvi.SizzleIntent
-import com.sizzlesense.ai.presentation.mvi.SizzleUiState
-import com.sizzlesense.ai.presentation.screens.AiXRayRoute
-import com.sizzlesense.ai.presentation.screens.CoachingLoopRoute
-import com.sizzlesense.ai.presentation.screens.EvalBenchRoute
-import com.sizzlesense.ai.presentation.screens.KitchenCaptureRoute
+import com.sizzlesense.ai.presentation.coaching.CoachingRoute
+import com.sizzlesense.ai.presentation.evalbench.EvalBenchRoute
+import com.sizzlesense.ai.presentation.kitchen.KitchenRoute
+import com.sizzlesense.ai.presentation.xray.AiXRayRoute
 
 @Composable
 fun SizzleNavGraph(
-    state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit,
+    activeDestination: SizzleDestination,
+    onDestinationSelected: (SizzleDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val backStack = rememberNavBackStack(SizzleRoute.KitchenLive)
+    val backStack = rememberNavBackStack(SizzleRoute.Kitchen)
 
-    LaunchedEffect(state.activeTab) {
-        val targetRoute = SizzleRoute.fromAppTab(state.activeTab)
+    LaunchedEffect(activeDestination) {
+        val targetRoute = SizzleRoute.fromDestination(activeDestination)
         if (backStack.lastOrNull() != targetRoute) {
             backStack.removeAll { it == targetRoute }
             backStack.add(targetRoute)
@@ -38,33 +36,26 @@ fun SizzleNavGraph(
                 backStack.removeLastOrNull()
                 val previousRoute = backStack.lastOrNull() as? SizzleRoute
                 if (previousRoute != null) {
-                    onIntent(SizzleIntent.SelectTab(previousRoute.toAppTab()))
+                    onDestinationSelected(previousRoute.toDestination())
                 }
             }
         },
         entryProvider = entryProvider<NavKey> {
-            entry<SizzleRoute.KitchenLive> {
-                KitchenCaptureRoute(
-                    state = state,
-                    onIntent = onIntent
+            entry<SizzleRoute.Kitchen> {
+                KitchenRoute(
+                    onNavigateToCoaching = {
+                        onDestinationSelected(SizzleDestination.COACHING)
+                    }
                 )
             }
-            entry<SizzleRoute.CoachingLoop> {
-                CoachingLoopRoute(
-                    state = state,
-                    onIntent = onIntent
-                )
+            entry<SizzleRoute.Coaching> {
+                CoachingRoute()
             }
             entry<SizzleRoute.AiXRay> {
-                AiXRayRoute(
-                    state = state
-                )
+                AiXRayRoute()
             }
             entry<SizzleRoute.EvalBench> {
-                EvalBenchRoute(
-                    state = state,
-                    onIntent = onIntent
-                )
+                EvalBenchRoute()
             }
         }
     )

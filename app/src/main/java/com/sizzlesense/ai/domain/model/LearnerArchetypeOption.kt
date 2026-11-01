@@ -1,4 +1,4 @@
-package com.sizzlesense.ai.presentation.mvi
+package com.sizzlesense.ai.domain.model
 
 enum class LearnerArchetypeOption(
     val id: String,

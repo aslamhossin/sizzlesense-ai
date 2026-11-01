@@ -1,4 +1,4 @@
-package com.sizzlesense.ai.presentation.screens
+package com.sizzlesense.ai.presentation.xray
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,24 +13,36 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.domain.model.ExpertTeachingDecision
 import com.sizzlesense.ai.domain.model.LearnerStateEstimate
 import com.sizzlesense.ai.domain.model.PhysicalObservationReport
 import com.sizzlesense.ai.presentation.components.LabeledDetailRow
 import com.sizzlesense.ai.presentation.components.SizzleSectionCard
-import com.sizzlesense.ai.presentation.mvi.SizzleUiState
 
 @Composable
-fun AiXRayRoute(state: SizzleUiState) {
-    AiXRayScreen(state = state)
+fun AiXRayRoute(
+    viewModel: AiXRayViewModel = hiltViewModel()
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    AiXRayScreen(
+        state = state,
+        onIntent = viewModel::onIntent
+    )
 }
 
 @Composable
-fun AiXRayScreen(state: SizzleUiState) {
+fun AiXRayScreen(
+    state: AiXRayUiState,
+    onIntent: (AiXRayUiIntent) -> Unit
+) {
     val resp = state.latestCoachingResponse
     if (resp == null) {
         EmptyXRayTraceState()
@@ -52,7 +64,11 @@ fun AiXRayScreen(state: SizzleUiState) {
             stage2 = resp.stage2LearnerState
         )
         Stage3PedagogicalRestraintCard(
-            stage3 = resp.stage3TeachingDecision
+            stage3 = resp.stage3TeachingDecision,
+            showSuppressedIssues = state.showSuppressedIssues,
+            onToggleSuppressed = { visible ->
+                onIntent(AiXRayUiIntent.ToggleSuppressedIssues(visible))
+            }
         )
     }
 }
@@ -136,7 +152,11 @@ private fun Stage2LearnerLatentStateCard(
 }
 
 @Composable
-private fun Stage3PedagogicalRestraintCard(stage3: ExpertTeachingDecision) {
+private fun Stage3PedagogicalRestraintCard(
+    stage3: ExpertTeachingDecision,
+    showSuppressedIssues: Boolean,
+    onToggleSuppressed: (Boolean) -> Unit
+) {
     SizzleSectionCard(
         title = "Stage 3: Pedagogical Restraint & Omitted Issues",
         subtitle = "Chef Causal Priority Graph",
@@ -146,16 +166,18 @@ private fun Stage3PedagogicalRestraintCard(stage3: ExpertTeachingDecision) {
             label = "Selected Primary: ${stage3.selectedPrimaryIssue}",
             value = stage3.causalPriorityRationale
         )
-        Text(
-            text = "Deliberately Suppressed Secondary Issues:",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        stage3.deliberatelyOmittedIssues.forEach { omitted ->
+        if (showSuppressedIssues) {
             Text(
-                text = "• ${omitted.issue} — ${omitted.suppressionReason}",
-                style = MaterialTheme.typography.bodySmall
+                text = "Deliberately Suppressed Secondary Issues:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
             )
+            stage3.deliberatelyOmittedIssues.forEach { omitted ->
+                Text(
+                    text = "• ${omitted.issue} — ${omitted.suppressionReason}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }

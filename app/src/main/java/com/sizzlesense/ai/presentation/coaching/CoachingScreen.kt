@@ -1,4 +1,4 @@
-package com.sizzlesense.ai.presentation.screens
+package com.sizzlesense.ai.presentation.coaching
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,61 +12,73 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.FiveCoreQuestionsSummary
 import com.sizzlesense.ai.domain.model.SensoryCoachingOutput
+import com.sizzlesense.ai.presentation.components.DismissibleErrorBanner
 import com.sizzlesense.ai.presentation.components.LabeledDetailRow
 import com.sizzlesense.ai.presentation.components.SizzleSectionCard
-import com.sizzlesense.ai.presentation.mvi.SizzleIntent
-import com.sizzlesense.ai.presentation.mvi.SizzleUiState
 
 @Composable
-fun CoachingLoopRoute(
-    state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit
+fun CoachingRoute(
+    viewModel: CoachingViewModel = hiltViewModel()
 ) {
-    CoachingLoopScreen(
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    CoachingScreen(
         state = state,
-        onAnalyzeCurrentAttempt = { onIntent(SizzleIntent.AnalyzeCurrentSession) }
+        onIntent = viewModel::onIntent
     )
 }
 
 @Composable
-fun CoachingLoopScreen(
-    state: SizzleUiState,
-    onAnalyzeCurrentAttempt: () -> Unit
+fun CoachingScreen(
+    state: CoachingUiState,
+    onIntent: (CoachingUiIntent) -> Unit
 ) {
-    val resp = state.latestCoachingResponse
-    if (resp == null) {
-        EmptyCoachingSessionState(
-            currentAttemptNumber = state.currentAttemptNumber,
-            onAnalyzeCurrentAttempt = onAnalyzeCurrentAttempt
-        )
-        return
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        SingleIssueCoachingCard(response = resp)
-        FiveCoreQuestionsCard(questions = resp.fiveCoreQuestions)
+        state.errorMessage?.let { err ->
+            DismissibleErrorBanner(
+                errorMessage = err,
+                onDismiss = { onIntent(CoachingUiIntent.ClearError) }
+            )
+        }
+
+        val resp = state.latestCoachingResponse
+        if (resp == null) {
+            EmptyCoachingSessionState(
+                currentAttemptNumber = state.currentAttemptNumber,
+                isAnalyzing = state.isAnalyzing,
+                onAnalyzeCurrentAttempt = { onIntent(CoachingUiIntent.AnalyzeCurrentAttempt) }
+            )
+        } else {
+            SingleIssueCoachingCard(response = resp)
+            FiveCoreQuestionsCard(questions = resp.fiveCoreQuestions)
+        }
     }
 }
 
 @Composable
 private fun EmptyCoachingSessionState(
     currentAttemptNumber: Int,
+    isAnalyzing: Boolean,
     onAnalyzeCurrentAttempt: () -> Unit
 ) {
     Box(
@@ -79,8 +91,12 @@ private fun EmptyCoachingSessionState(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(10.dp))
-            Button(onClick = onAnalyzeCurrentAttempt) {
-                Text("Analyze Attempt $currentAttemptNumber Now")
+            if (isAnalyzing) {
+                CircularProgressIndicator()
+            } else {
+                Button(onClick = onAnalyzeCurrentAttempt) {
+                    Text("Analyze Attempt $currentAttemptNumber Now")
+                }
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.sizzlesense.ai.presentation.screens
+package com.sizzlesense.ai.presentation.evalbench
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,30 +18,33 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.domain.model.EvalCaseScore
 import com.sizzlesense.ai.domain.model.EvalSuiteReport
+import com.sizzlesense.ai.presentation.components.DismissibleErrorBanner
 import com.sizzlesense.ai.presentation.components.SizzleSectionCard
-import com.sizzlesense.ai.presentation.mvi.SizzleIntent
-import com.sizzlesense.ai.presentation.mvi.SizzleUiState
 
 @Composable
 fun EvalBenchRoute(
-    state: SizzleUiState,
-    onIntent: (SizzleIntent) -> Unit
+    viewModel: EvalBenchViewModel = hiltViewModel()
 ) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
     EvalBenchScreen(
         state = state,
-        onRunEvalSuite = { onIntent(SizzleIntent.RunHumanLearningEvalSuite) }
+        onIntent = viewModel::onIntent
     )
 }
 
 @Composable
 fun EvalBenchScreen(
-    state: SizzleUiState,
-    onRunEvalSuite: () -> Unit
+    state: EvalBenchUiState,
+    onIntent: (EvalBenchUiIntent) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -49,9 +52,16 @@ fun EvalBenchScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        state.errorMessage?.let { err ->
+            DismissibleErrorBanner(
+                errorMessage = err,
+                onDismiss = { onIntent(EvalBenchUiIntent.ClearError) }
+            )
+        }
+
         EvalBenchmarkControlCard(
             isRunningEvals = state.isRunningEvals,
-            onRunEvalSuite = onRunEvalSuite
+            onRunEvalSuite = { onIntent(EvalBenchUiIntent.RunHumanLearningEvalSuite) }
         )
 
         state.evalSuiteReport?.let { report ->

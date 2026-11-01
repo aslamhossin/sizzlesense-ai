@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.sizzlesense.ai.presentation.screens.SizzleMainScreen
+import com.sizzlesense.ai.presentation.main.SizzleMainScreen
 import com.sizzlesense.ai.presentation.theme.SizzleSenseTheme
 import dagger.hilt.android.AndroidEntryPoint
 

@@ -1,17 +1,16 @@
 package com.sizzlesense.ai.presentation.navigation
 
 import androidx.navigation3.runtime.NavKey
-import com.sizzlesense.ai.presentation.mvi.AppTab
 import kotlinx.serialization.Serializable
 
 @Serializable
 sealed interface SizzleRoute : NavKey {
 
     @Serializable
-    data object KitchenLive : SizzleRoute
+    data object Kitchen : SizzleRoute
 
     @Serializable
-    data object CoachingLoop : SizzleRoute
+    data object Coaching : SizzleRoute
 
     @Serializable
     data object AiXRay : SizzleRoute
@@ -19,19 +18,19 @@ sealed interface SizzleRoute : NavKey {
     @Serializable
     data object EvalBench : SizzleRoute
 
-    fun toAppTab(): AppTab = when (this) {
-        KitchenLive -> AppTab.KITCHEN_LIVE
-        CoachingLoop -> AppTab.COACHING_LOOP
-        AiXRay -> AppTab.AI_XRAY
-        EvalBench -> AppTab.EVAL_BENCH
+    fun toDestination(): SizzleDestination = when (this) {
+        Kitchen -> SizzleDestination.KITCHEN
+        Coaching -> SizzleDestination.COACHING
+        AiXRay -> SizzleDestination.XRAY
+        EvalBench -> SizzleDestination.EVAL_BENCH
     }
 
     companion object {
-        fun fromAppTab(tab: AppTab): SizzleRoute = when (tab) {
-            AppTab.KITCHEN_LIVE -> KitchenLive
-            AppTab.COACHING_LOOP -> CoachingLoop
-            AppTab.AI_XRAY -> AiXRay
-            AppTab.EVAL_BENCH -> EvalBench
+        fun fromDestination(destination: SizzleDestination): SizzleRoute = when (destination) {
+            SizzleDestination.KITCHEN -> Kitchen
+            SizzleDestination.COACHING -> Coaching
+            SizzleDestination.XRAY -> AiXRay
+            SizzleDestination.EVAL_BENCH -> EvalBench
         }
     }
 }

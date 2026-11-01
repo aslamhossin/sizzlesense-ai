@@ -1,10 +1,12 @@
 package com.sizzlesense.ai.di
 
 import com.sizzlesense.ai.data.repository.SizzleCognitiveRepository
+import com.sizzlesense.ai.data.session.InMemorySessionStore
 import com.sizzlesense.ai.domain.repository.CognitiveRepository
 import com.sizzlesense.ai.domain.repository.EvaluationBenchmarkGateway
 import com.sizzlesense.ai.domain.repository.LiveTapoCameraGateway
 import com.sizzlesense.ai.domain.repository.SessionAnalysisGateway
+import com.sizzlesense.ai.domain.repository.SessionStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -12,7 +14,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Binds Domain repository and segregated gateway interfaces to [SizzleCognitiveRepository].
+ * Binds Domain repository, session store, and segregated gateway interfaces.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -41,4 +43,10 @@ abstract class DataModule {
     abstract fun bindEvaluationBenchmarkGateway(
         impl: SizzleCognitiveRepository
     ): EvaluationBenchmarkGateway
+
+    @Binds
+    @Singleton
+    abstract fun bindSessionStore(
+        impl: InMemorySessionStore
+    ): SessionStore
 }

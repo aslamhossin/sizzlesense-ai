@@ -1,4 +1,4 @@
-package com.sizzlesense.ai.presentation.screens
+package com.sizzlesense.ai.presentation.main
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -38,19 +38,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sizzlesense.ai.presentation.components.DismissibleErrorBanner
-import com.sizzlesense.ai.presentation.mvi.AppTab
-import com.sizzlesense.ai.presentation.mvi.SizzleIntent
-import com.sizzlesense.ai.presentation.mvi.SizzleUiState
-import com.sizzlesense.ai.presentation.mvi.SizzleViewModel
+import com.sizzlesense.ai.presentation.navigation.SizzleDestination
 import com.sizzlesense.ai.presentation.navigation.SizzleNavGraph
 
 @Composable
 fun SizzleMainScreen(
-    viewModel: SizzleViewModel = hiltViewModel()
+    viewModel: MainViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val onIntent: (SizzleIntent) -> Unit = viewModel::dispatch
+    val onIntent: (MainUiIntent) -> Unit = viewModel::onIntent
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -59,8 +55,10 @@ fun SizzleMainScreen(
         },
         bottomBar = {
             SizzleBottomNavigationBar(
-                activeTab = state.activeTab,
-                onTabSelected = { tab -> onIntent(SizzleIntent.SelectTab(tab)) }
+                activeDestination = state.activeDestination,
+                onDestinationSelected = { destination ->
+                    onIntent(MainUiIntent.SelectDestination(destination))
+                }
             )
         }
     ) { innerPadding ->
@@ -74,20 +72,15 @@ fun SizzleMainScreen(
             AttemptSelectorBar(
                 state = state,
                 onAttemptSelected = { attempt ->
-                    onIntent(SizzleIntent.SelectAttemptNumber(attempt))
+                    onIntent(MainUiIntent.SelectAttemptNumber(attempt))
                 }
             )
 
-            state.errorMessage?.let { err ->
-                DismissibleErrorBanner(
-                    errorMessage = err,
-                    onDismiss = { onIntent(SizzleIntent.ClearError) }
-                )
-            }
-
             SizzleNavGraph(
-                state = state,
-                onIntent = onIntent,
+                activeDestination = state.activeDestination,
+                onDestinationSelected = { destination ->
+                    onIntent(MainUiIntent.SelectDestination(destination))
+                },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -138,25 +131,25 @@ private fun SizzleTopAppBar() {
 
 @Composable
 private fun SizzleBottomNavigationBar(
-    activeTab: AppTab,
-    onTabSelected: (AppTab) -> Unit
+    activeDestination: SizzleDestination,
+    onDestinationSelected: (SizzleDestination) -> Unit
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface
     ) {
-        AppTab.entries.forEach { tab ->
+        SizzleDestination.entries.forEach { destination ->
             NavigationBarItem(
-                selected = activeTab == tab,
-                onClick = { onTabSelected(tab) },
+                selected = activeDestination == destination,
+                onClick = { onDestinationSelected(destination) },
                 icon = {
                     Icon(
-                        imageVector = tab.toIcon(),
-                        contentDescription = tab.label
+                        imageVector = destination.toIcon(),
+                        contentDescription = destination.label
                     )
                 },
                 label = {
                     Text(
-                        text = tab.label,
+                        text = destination.label,
                         maxLines = 1
                     )
                 }
@@ -167,7 +160,7 @@ private fun SizzleBottomNavigationBar(
 
 @Composable
 private fun AttemptSelectorBar(
-    state: SizzleUiState,
+    state: MainUiState,
     onAttemptSelected: (Int) -> Unit
 ) {
     Row(
@@ -175,7 +168,7 @@ private fun AttemptSelectorBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         listOf(1, 2, 3).forEach { attempt ->
-            val completed = state.attemptHistory.containsKey(attempt)
+            val completed = state.completedAttemptNumbers.contains(attempt)
             FilterChip(
                 selected = state.currentAttemptNumber == attempt,
                 onClick = { onAttemptSelected(attempt) },
@@ -189,9 +182,9 @@ private fun AttemptSelectorBar(
     }
 }
 
-private fun AppTab.toIcon(): ImageVector = when (this) {
-    AppTab.KITCHEN_LIVE -> Icons.Default.Videocam
-    AppTab.COACHING_LOOP -> Icons.Default.School
-    AppTab.AI_XRAY -> Icons.Default.Psychology
-    AppTab.EVAL_BENCH -> Icons.Default.Analytics
+private fun SizzleDestination.toIcon(): ImageVector = when (this) {
+    SizzleDestination.KITCHEN -> Icons.Default.Videocam
+    SizzleDestination.COACHING -> Icons.Default.School
+    SizzleDestination.XRAY -> Icons.Default.Psychology
+    SizzleDestination.EVAL_BENCH -> Icons.Default.Analytics
 }
