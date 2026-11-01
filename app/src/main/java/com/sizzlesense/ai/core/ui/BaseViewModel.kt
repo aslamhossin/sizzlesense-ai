@@ -9,30 +9,29 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Base [ViewModel] implementing [UnidirectionalViewModel] with buffered one-off [effects]
- * and cooperative [CancellationException]-safe coroutine execution mapped to [AppError].
+ * Base [ViewModel] implementing [UnidirectionalViewModel] with Kotlin Explicit Backing Fields
+ * (`field = MutableStateFlow(...)`), buffered one-off [effects], and [AppError] mapping.
  */
 abstract class BaseViewModel<STATE, INTENT, EFFECT>(
     initialState: STATE
 ) : ViewModel(), UnidirectionalViewModel<STATE, INTENT, EFFECT> {
 
-    private val _uiState = MutableStateFlow(initialState)
-    override val uiState: StateFlow<STATE> = _uiState.asStateFlow()
+    final override val uiState: StateFlow<STATE>
+        field = MutableStateFlow(initialState)
 
     private val effectChannel = Channel<EFFECT>(Channel.BUFFERED)
     override val effects: Flow<EFFECT> = effectChannel.receiveAsFlow()
 
     protected val currentState: STATE
-        get() = _uiState.value
+        get() = uiState.value
 
     protected fun updateState(reducer: (STATE) -> STATE) {
-        _uiState.update(reducer)
+        uiState.update(reducer)
     }
 
     protected fun emitEffect(effect: EFFECT) {
