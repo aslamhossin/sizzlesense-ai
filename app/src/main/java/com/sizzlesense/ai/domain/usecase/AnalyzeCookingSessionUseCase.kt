@@ -1,11 +1,7 @@
 package com.sizzlesense.ai.domain.usecase
 
 import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
-import com.sizzlesense.ai.domain.model.EvalSuiteReport
 import com.sizzlesense.ai.domain.model.SessionAnalyzeRequest
-import com.sizzlesense.ai.domain.model.TapoCameraConfig
-import com.sizzlesense.ai.domain.repository.EvaluationBenchmarkGateway
-import com.sizzlesense.ai.domain.repository.LiveTapoCameraGateway
 import com.sizzlesense.ai.domain.repository.SessionAnalysisGateway
 import javax.inject.Inject
 
@@ -42,36 +38,5 @@ class AnalyzeCookingSessionUseCase @Inject constructor(
 
     companion object {
         const val DEFAULT_DISH_ID = "sauteed_onions"
-    }
-}
-
-class CaptureLiveTapoSessionUseCase @Inject constructor(
-    private val gateway: LiveTapoCameraGateway
-) {
-
-    suspend operator fun invoke(
-        baseUrl: String,
-        tapoConfig: TapoCameraConfig,
-        attemptNumber: Int,
-        reflectionText: String
-    ): CognitiveCoachingResponse {
-        require(tapoConfig.ipAddress.isNotBlank()) {
-            "Tapo C100 IP address cannot be blank."
-        }
-        return gateway.captureFromBackendTapoAndAnalyze(
-            baseUrl = baseUrl,
-            tapoConfig = tapoConfig,
-            attemptNumber = attemptNumber.coerceIn(1, 3),
-            reflectionText = reflectionText.trim()
-        )
-    }
-}
-
-class RunHumanLearningEvalUseCase @Inject constructor(
-    private val gateway: EvaluationBenchmarkGateway
-) {
-
-    suspend operator fun invoke(baseUrl: String): EvalSuiteReport {
-        return gateway.runEvaluationBenchmark(baseUrl = baseUrl)
     }
 }

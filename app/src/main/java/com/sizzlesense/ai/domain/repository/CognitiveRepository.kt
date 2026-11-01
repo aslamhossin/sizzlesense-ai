@@ -1,30 +1,5 @@
 package com.sizzlesense.ai.domain.repository
 
-import com.sizzlesense.ai.domain.model.CognitiveCoachingResponse
-import com.sizzlesense.ai.domain.model.EvalSuiteReport
-import com.sizzlesense.ai.domain.model.SessionAnalyzeRequest
-import com.sizzlesense.ai.domain.model.TapoCameraConfig
-
-fun interface SessionAnalysisGateway {
-    suspend fun analyzeSession(
-        baseUrl: String,
-        request: SessionAnalyzeRequest
-    ): CognitiveCoachingResponse
-}
-
-fun interface LiveTapoCameraGateway {
-    suspend fun captureFromBackendTapoAndAnalyze(
-        baseUrl: String,
-        tapoConfig: TapoCameraConfig,
-        attemptNumber: Int,
-        reflectionText: String
-    ): CognitiveCoachingResponse
-}
-
-fun interface EvaluationBenchmarkGateway {
-    suspend fun runEvaluationBenchmark(baseUrl: String): EvalSuiteReport
-}
-
 interface CognitiveRepository :
     SessionAnalysisGateway,
     LiveTapoCameraGateway,
