@@ -37,11 +37,12 @@ Most culinary AI wrappers merely list surface-level mistakes or repeat recipe ti
 │   └── tests/                      # 22 Pytest unit & integration tests
 ├── app/                            # Android Client (Gradle 9.7.1, AGP 9.4.1, Kotlin 2.4.20, Compose BOM 2026.09.00)
 │   ├── src/main/java/com/sizzlesense/ai/
-│   │   ├── domain/model/           # Kotlinx.Serialization models & TapoRtspConfig
-│   │   ├── data/camera/            # Media3 1.11.1 ExoPlayer RTSP live stream & keyframe grabber
-│   │   ├── data/repository/        # Backend + On-Device Cognitive Repository
-│   │   └── presentation/mvi/       # Strict MVI Contract, Pure Reducer, ViewModel & 4-Tab Compose UI
-│   └── src/test/                   # JUnit tests for RTSP URL encoding & MVI Reducer
+│   │   ├── core/                   # BaseViewModel (Kotlin 2.4 Explicit Backing Fields), safeApiCall, AppResult & AppError
+│   │   ├── di/                     # Dagger Hilt 2.60.1 Modules (NetworkModule, DataModule, DispatcherModule) & Qualifiers
+│   │   ├── domain/                 # Pure Kotlin Domain Models (coaching, camera, eval, session), Gateways & UseCases
+│   │   ├── data/                   # Typed DTOs + .toDomain()/.toDto() Mappers, FailoverJsonHttpClient & SizzleCognitiveRepository
+│   │   └── presentation/           # Feature-per-Package UI (kitchen, coaching, xray, evalbench, main, navigation, theme tokens)
+│   └── src/test/                   # JUnit + Coroutines Test suite for UseCases, DTO Mappers, safeApiCall & RTSP URL Builder
 ├── TECHNICAL_DIRECTION.md          # Senior Principal Architecture & Evaluation RFC
 └── render.yaml                     # 1-Click Cloud Deployment Blueprint
 ```

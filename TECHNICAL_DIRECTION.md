@@ -22,18 +22,27 @@ In a real home kitchen, this fails for three fundamental reasons:
 
 ## 2. The 4-Stage Applied AI Cognitive Architecture
 
-Instead of a single prompt, `SizzleSense AI` decomposes human learning coaching into four typed, inspectable stages enforced via `Pydantic v2` (`ai-backend/app/schemas/domain.py`) and Kotlin `@Serializable` models:
+Instead of a single prompt, `SizzleSense AI` decomposes human learning coaching into four typed, inspectable stages enforced via `Pydantic v2` (`ai-backend/app/schemas/domain.py`) and mapped in Android via `@Serializable` Data DTOs (`app/src/main/java/com/sizzlesense/ai/data/remote/dto/`) into pure Kotlin Domain models (`app/src/main/java/com/sizzlesense/ai/domain/model/`):
 
 | Stage | Module | Input | Output Schema | Core Engineering Invariant |
 | :--- | :--- | :--- | :--- | :--- |
-| **Stage 1: Physical World Understanding** | `KitchenFrameAnalyzer` (CV) + `gemini-3.8-flash` | Overhead RTSP keyframes + acoustic sizzle signature + learner reflection | `PhysicalObservationReport` | Explicitly separates `observed_timeline_facts`, `inferred_physical_states`, `environmental_uncertainties`, and `perception_gap_level`. |
-| **Stage 2: Learner State Estimation** | `LearnerStateEstimator` (`gemini-4-argon`) + `LearnerMemoryStore` | Stage 1 report + prior attempts (`Attempt 1 → 2 → 3`) | `LearnerStateEstimate` | Infers latent misconceptions and distinguishes **lucky timer execution (`PARTIAL_EXECUTION_ONLY`)** from verified sensory mastery (`CONCEPT_ADOPTED`). |
+| **Stage 1: Physical World Understanding** | `KitchenFrameAnalyzer` (CV) + `gemini-3-flash-preview` | Overhead RTSP keyframes + acoustic sizzle signature + learner reflection | `PhysicalObservationReport` | Explicitly separates `observed_timeline_facts`, `inferred_physical_states`, `environmental_uncertainties`, and `perception_gap_level`. |
+| **Stage 2: Learner State Estimation** | `LearnerStateEstimator` (`gemini-3-flash-preview`) + `LearnerMemoryStore` | Stage 1 report + prior attempts (`Attempt 1 → 2 → 3`) | `LearnerStateEstimate` | Infers latent misconceptions and distinguishes **lucky timer execution (`PARTIAL_EXECUTION_ONLY`)** from verified sensory mastery (`CONCEPT_ADOPTED`). |
 | **Stage 3: Expert Reasoning & Single-Issue Selection** | `ChefKnowledgeGraph` | Stage 2 state + Causal Prerequisite Graph (`causal_rank 1..5`) | `ExpertTeachingDecision` | **Pedagogical Restraint Validator:** Selects strictly **1** primary issue and requires non-empty `deliberately_omitted_issues` whenever multiple faults exist. |
 | **Stage 4: Sensory Coaching Communication** | `SensoryCoachCommunicator` | Stage 3 decision | `SensoryCoachingOutput` + `FiveCoreQuestionsSummary` | Grounds feedback in **Visual**, **Auditory (Sizzle)**, and **Olfactory** cues; prohibits rigid timer rules. |
 
 ---
 
-## 3. Evaluation Framework (`EvalBench`): Defining "Good" When There Is No Single Right Answer
+## 3. Android Edge Client Architecture (Clean Architecture + Unidirectional MVI)
+
+- **Pure Domain Layer & Segregated Gateways:** Domain models (`domain/model/coaching`, `camera`, `eval`, `session`) have zero serialization or framework annotations. Feature UseCases (`AnalyzeCookingSessionUseCase`, `CaptureLiveTapoSessionUseCase`, `RunHumanLearningEvalUseCase`) depend on segregated functional gateways returning `AppResult<T>`.
+- **Coroutines `safeApiCall` & Structured Error Handling:** All network boundary calls run on `@IoDispatcher` inside `safeApiCall`, mapping `IOException`, `SocketTimeoutException`, `SerializationException`, and HTTP errors into a sealed `AppError` hierarchy (`AppResult<T>`).
+- **Kotlin 2.4 Explicit Backing Fields & Thunderbird-Style `BaseViewModel`:** `BaseViewModel<STATE, INTENT, EFFECT>` uses Kotlin 2.4 explicit backing fields (`field = MutableStateFlow(initialState)`), `collectWhileSubscribed` (`SharingStarted.WhileSubscribed(5_000L)`), and `launchResultTask` across feature-scoped `@HiltViewModel` classes (`KitchenViewModel`, `CoachingViewModel`, `AiXRayViewModel`, `EvalBenchViewModel`, `MainViewModel`).
+- **Jetpack Navigation 3 & Compose Design Tokens:** Type-safe `@Serializable` `NavKey` routing with `NavDisplay` + `rememberSaveableStateHolderNavEntryDecorator()`, styled via `CompositionLocalProvider` design tokens (`SizzleColorTokens`, `SizzleSpacingTokens`, `SizzleRadiusTokens`).
+
+---
+
+## 4. Evaluation Framework (`EvalBench`): Defining "Good" When There Is No Single Right Answer
 
 Because culinary coaching has no single ground-truth string, `ai-backend/app/evals/human_learning_eval.py` evaluates the system across **10 multi-session trajectories** (3 learner archetypes × 3 attempts + 1 negative-control "lucky timer" trajectory) using 5 quantitative rubrics:
 
