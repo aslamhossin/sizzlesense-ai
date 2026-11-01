@@ -1,0 +1,2 @@
+-keepattributes *Annotation*,InnerClasses,Signature
+-dontwarn okhttp3.**
