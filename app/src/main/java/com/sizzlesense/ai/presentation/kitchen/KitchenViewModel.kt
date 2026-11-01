@@ -87,8 +87,7 @@ class KitchenViewModel @Inject constructor(
 
     private fun runCognitiveAnalysis() {
         executePipelineTask(
-            stageLabel = "Running 4-Stage Cognitive Pipeline (Stage 1 Physical -> Stage 4 Sensory)...",
-            fallbackError = "Failed to analyze cooking session"
+            stageLabel = "Running 4-Stage Cognitive Pipeline (Stage 1 Physical -> Stage 4 Sensory)..."
         ) { snapshot ->
             analyzeCookingSession(
                 baseUrl = snapshot.backendBaseUrl,
@@ -103,8 +102,7 @@ class KitchenViewModel @Inject constructor(
     private fun runBackendTapoLiveCapture() {
         val ip = sessionStore.sessionState.value.tapoConfig.ipAddress
         executePipelineTask(
-            stageLabel = "Grabbing live RTSP frame from Tapo C100 ($ip:554) & running Gemini 3...",
-            fallbackError = "Live Tapo capture failed"
+            stageLabel = "Grabbing live RTSP frame from Tapo C100 ($ip:554) & running Gemini 3..."
         ) { snapshot ->
             captureLiveTapoSession(
                 baseUrl = snapshot.backendBaseUrl,
@@ -117,7 +115,6 @@ class KitchenViewModel @Inject constructor(
 
     private fun executePipelineTask(
         stageLabel: String,
-        fallbackError: String,
         block: suspend (SessionSnapshot) -> CognitiveCoachingResponse
     ) {
         val snapshot = sessionStore.sessionState.value
@@ -129,12 +126,12 @@ class KitchenViewModel @Inject constructor(
             )
         }
         launchTask(
-            onError = { error ->
+            onError = { appError ->
                 updateState {
                     it.copy(
                         isAnalyzing = false,
                         activePipelineStageLabel = "Error occurred",
-                        errorMessage = error.message ?: fallbackError
+                        errorMessage = appError.readableMessage
                     )
                 }
             }

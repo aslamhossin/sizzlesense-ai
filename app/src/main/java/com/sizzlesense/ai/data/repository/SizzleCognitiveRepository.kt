@@ -1,5 +1,9 @@
 package com.sizzlesense.ai.data.repository
 
+import com.sizzlesense.ai.core.result.AppError
+import com.sizzlesense.ai.core.result.AppException
+import com.sizzlesense.ai.core.result.getOrElse
+import com.sizzlesense.ai.core.result.map
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
 import com.sizzlesense.ai.data.remote.dto.coaching.CognitiveCoachingResponseDto
@@ -68,10 +72,11 @@ class SizzleCognitiveRepository @Inject constructor(
             responseSerializer = CognitiveCoachingResponseDto.serializer()
         ).map { dto ->
             dto.toDomain()
-        }.getOrElse { error ->
-            throw IllegalStateException(
-                "Live Tapo backend capture failed (${error.message}). Check username/password or backend URL.",
-                error
+        }.getOrElse { appError ->
+            throw AppException(
+                AppError.NetworkUnavailable(
+                    "Live Tapo backend capture failed (${appError.readableMessage}). Check username/password or backend URL."
+                )
             )
         }
     }

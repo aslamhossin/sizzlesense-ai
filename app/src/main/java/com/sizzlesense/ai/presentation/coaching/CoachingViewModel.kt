@@ -41,11 +41,11 @@ class CoachingViewModel @Inject constructor(
         val snapshot = sessionStore.sessionState.value
         updateState { it.copy(isAnalyzing = true, errorMessage = null) }
         launchTask(
-            onError = { error ->
+            onError = { appError ->
                 updateState {
                     it.copy(
                         isAnalyzing = false,
-                        errorMessage = error.message ?: "Failed to analyze current attempt"
+                        errorMessage = appError.readableMessage
                     )
                 }
             }

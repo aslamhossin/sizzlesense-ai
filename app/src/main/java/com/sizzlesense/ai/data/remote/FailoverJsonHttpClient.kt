@@ -1,11 +1,14 @@
 package com.sizzlesense.ai.data.remote
 
+import com.sizzlesense.ai.core.network.safeApiCall
+import com.sizzlesense.ai.core.result.AppError
+import com.sizzlesense.ai.core.result.AppException
+import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.di.qualifier.IoDispatcher
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -34,10 +37,10 @@ class FailoverJsonHttpClient @Inject constructor(
         endpointPath: String,
         jsonBody: String,
         responseSerializer: KSerializer<T>
-    ): Result<T> = withContext(ioDispatcher) {
+    ): AppResult<T> = safeApiCall(ioDispatcher) {
         val candidates = resolveCandidateEndpoints(primaryBaseUrl)
         val mediaType = JSON_MEDIA_TYPE.toMediaType()
-        var lastError: Throwable = IllegalStateException("No candidate endpoints configured")
+        var lastError: AppError = AppError.NetworkUnavailable("No candidate endpoints configured")
 
         for (rootUrl in candidates) {
             try {
@@ -49,19 +52,23 @@ class FailoverJsonHttpClient @Inject constructor(
                 httpClient.newCall(request).execute().use { response ->
                     val rawBody = response.body.string()
                     if (response.isSuccessful && rawBody.isNotBlank()) {
-                        val parsed = json.decodeFromString(responseSerializer, rawBody)
-                        return@withContext Result.success(parsed)
+                        return@safeApiCall json.decodeFromString(responseSerializer, rawBody)
                     } else {
-                        lastError = IllegalStateException("HTTP ${response.code}: $rawBody")
+                        lastError = AppError.HttpError(
+                            statusCode = response.code,
+                            responseBody = rawBody
+                        )
                     }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                lastError = e
+                lastError = AppError.NetworkUnavailable(
+                    e.message ?: "Endpoint $rootUrl unreachable"
+                )
             }
         }
-        Result.failure(lastError)
+        throw AppException(lastError)
     }
 
     companion object {

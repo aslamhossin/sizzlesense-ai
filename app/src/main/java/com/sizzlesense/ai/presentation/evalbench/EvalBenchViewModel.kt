@@ -38,11 +38,11 @@ class EvalBenchViewModel @Inject constructor(
         val baseUrl = sessionStore.sessionState.value.backendBaseUrl
         updateState { it.copy(isRunningEvals = true, errorMessage = null) }
         launchTask(
-            onError = { error ->
+            onError = { appError ->
                 updateState {
                     it.copy(
                         isRunningEvals = false,
-                        errorMessage = error.message ?: "Eval benchmark execution failed"
+                        errorMessage = appError.readableMessage
                     )
                 }
             }

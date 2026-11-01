@@ -2,6 +2,8 @@ package com.sizzlesense.ai.core.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sizzlesense.ai.core.result.AppError
+import com.sizzlesense.ai.core.result.AppException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -14,7 +16,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Base [ViewModel] implementing [UnidirectionalViewModel] with buffered one-off [effects]
- * and cooperative [CancellationException]-safe coroutine execution.
+ * and cooperative [CancellationException]-safe coroutine execution mapped to [AppError].
  */
 abstract class BaseViewModel<STATE, INTENT, EFFECT>(
     initialState: STATE
@@ -40,7 +42,7 @@ abstract class BaseViewModel<STATE, INTENT, EFFECT>(
     }
 
     protected fun launchTask(
-        onError: (Throwable) -> Unit = {},
+        onError: (AppError) -> Unit = {},
         block: suspend () -> Unit
     ) {
         viewModelScope.launch {
@@ -48,8 +50,12 @@ abstract class BaseViewModel<STATE, INTENT, EFFECT>(
                 block()
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: AppException) {
+                onError(e.appError)
+            } catch (e: IllegalArgumentException) {
+                onError(AppError.ValidationError(e.message ?: "Invalid input"))
             } catch (e: Exception) {
-                onError(e)
+                onError(AppError.Unknown(e.message ?: "Unexpected error occurred"))
             }
         }
     }
