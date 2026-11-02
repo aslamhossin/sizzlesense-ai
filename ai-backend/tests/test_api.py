@@ -12,8 +12,8 @@ def test_health_endpoint_returns_frontier_models():
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "healthy"
-    assert data["default_reasoning_model"] == "gemini-4-argon"
-    assert data["default_vision_model"] == "gemini-3.8-flash"
+    assert data["default_reasoning_model"] == "gemini-3-flash-preview"
+    assert data["default_vision_model"] == "gemini-3-flash-preview"
 
 
 def test_analyze_session_endpoint_and_learner_history():

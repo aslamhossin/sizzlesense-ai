@@ -1,4 +1,4 @@
-"""Configuration for Google Gemini Frontier Models (`gemini-4-argon` and `gemini-3.8-flash`)."""
+"""Configuration for Google Gemini Multimodal & Reasoning Models (`gemini-3-flash-preview`)."""
 
 from __future__ import annotations
 
@@ -27,8 +27,8 @@ def _read_dotenv_value(key: str) -> str | None:
 class AiEngineConfig(BaseModel):
     """Runtime model configuration for SizzleSense AI."""
 
-    default_reasoning_model: str = "gemini-4-argon"
-    default_vision_model: str = "gemini-3.8-flash"
+    default_reasoning_model: str = "gemini-3-flash-preview"
+    default_vision_model: str = "gemini-3-flash-preview"
     gemini_api_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
 
     @property

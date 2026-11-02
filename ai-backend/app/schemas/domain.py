@@ -185,8 +185,8 @@ class SessionAnalyzeRequest(BaseModel):
     )
     acoustic_hint: Optional[AcousticSizzleSignature] = None
     gemini_api_key: Optional[str] = None
-    preferred_reasoning_model: str = Field(default="gemini-4-argon")
-    preferred_vision_model: str = Field(default="gemini-3.8-flash")
+    preferred_reasoning_model: str = Field(default="gemini-3-flash-preview")
+    preferred_vision_model: str = Field(default="gemini-3-flash-preview")
 
 
 class CognitiveCoachingResponse(BaseModel):

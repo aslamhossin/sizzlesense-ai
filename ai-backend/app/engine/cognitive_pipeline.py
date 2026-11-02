@@ -1,4 +1,4 @@
-"""4-Stage Applied AI Cognitive Pipeline (`gemini-4-argon` + `gemini-3.8-flash` + Deterministic Engine)."""
+"""4-Stage Applied AI Cognitive Pipeline (`gemini-3-flash-preview` + Deterministic Engine)."""
 
 from __future__ import annotations
 
