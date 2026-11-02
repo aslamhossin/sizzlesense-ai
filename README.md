@@ -1,5 +1,7 @@
 # SizzleSense AI — Applied AI Human Learning & Culinary Perception Coach
 
+[![SizzleSense AI CI](https://github.com/aslamhossin/sizzlesense-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/aslamhossin/sizzlesense-ai/actions/workflows/ci.yml)
+
 **Full-Stack Applied AI Engineering Portfolio (`Android Kotlin Strict MVI` + `TP-Link Tapo C100 RTSP Hardware` + `Python FastAPI & Computer Vision` + `Google Gemini 3 Multimodal Pipeline & EvalBench`)**
 
 ---
