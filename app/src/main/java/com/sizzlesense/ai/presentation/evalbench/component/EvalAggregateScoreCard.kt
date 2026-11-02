@@ -12,7 +12,7 @@ fun EvalAggregateScoreCard(report: EvalSuiteReport) {
     val overallPct = (report.overallHumanLearningScore * 100).toInt()
     SizzleSectionCard(
         title = "Overall Score: $overallPct% (${report.totalSessionsEvaluated} Sessions)",
-        subtitle = "Verified against Cookpad JD Human Learning Rubrics",
+        subtitle = "Verified across 5 Human Learning & Sensory Transfer Rubrics",
         icon = Icons.Default.CheckCircle
     ) {
         Text("• Perception Gap Recall: ${(report.perceptionGapDetectionScore * 100).toInt()}%")

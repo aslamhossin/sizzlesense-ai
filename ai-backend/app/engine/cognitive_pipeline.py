@@ -12,7 +12,7 @@ import httpx
 from app.config import SETTINGS
 from app.engine.chef_knowledge import (
     CHEF_PRINCIPLES_REGISTRY,
-    JD_ONION_ARCHETYPES,
+    ONION_LEARNER_ARCHETYPES,
     ChefPrinciple,
     LearnerArchetypeScenario,
 )
@@ -66,7 +66,7 @@ class CognitiveCoachingPipeline:
       - Stage 2 (`_build_stage2_learner_state`): Learner Latent State & Longitudinal Transfer
       - Stage 3 (`_build_stage3_teaching_decision`): Expert Causal Priority & Pedagogical Restraint
       - Stage 4 (`_build_stage4_sensory_coaching`): Sensory-Grounded Coaching Communication
-      - Synthesis (`_synthesize_five_core_questions`): Direct mapping to the 5 Cookpad JD Questions
+      - Synthesis (`_synthesize_five_core_questions`): Direct mapping to the 5 Core Pedagogical Questions
     """
 
     def __init__(self, memory_store: Optional[LearnerMemoryStore] = None) -> None:
@@ -125,7 +125,7 @@ class CognitiveCoachingPipeline:
     def _infer_archetype_id(
         self, request: SessionAnalyzeRequest, cv_metrics: ComputerVisionMetrics
     ) -> str:
-        if request.archetype_hint and request.archetype_hint in JD_ONION_ARCHETYPES:
+        if request.archetype_hint and request.archetype_hint in ONION_LEARNER_ARCHETYPES:
             return request.archetype_hint
 
         text = request.learner_reflection.lower()
@@ -164,7 +164,7 @@ class CognitiveCoachingPipeline:
         prior_session: Optional[CognitiveCoachingResponse],
     ) -> CognitiveCoachingResponse:
         archetype_id = self._infer_archetype_id(request, cv_metrics)
-        archetype = JD_ONION_ARCHETYPES[archetype_id]
+        archetype = ONION_LEARNER_ARCHETYPES[archetype_id]
 
         stage1, visual_fact, inferred_states = self._build_stage1_physical_observation(
             request=request,
@@ -453,7 +453,7 @@ class CognitiveCoachingPipeline:
         stage3: ExpertTeachingDecision,
         stage4: SensoryCoachingOutput,
     ) -> FiveCoreQuestionsSummary:
-        """Maps the 4 stages directly onto the 5 Cookpad JD Human Learning questions."""
+        """Maps the 4 stages directly onto the 5 Core Human Learning questions."""
         return FiveCoreQuestionsSummary(
             what_is_happening_now=f"{visual_fact} ({primary_inferred_state})",
             what_they_understand_vs_not=(

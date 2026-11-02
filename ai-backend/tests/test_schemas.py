@@ -1,4 +1,4 @@
-"""Tests for SizzleSense AI strict Pydantic domain schemas (4 Pillars & 5 Core JD Questions)."""
+"""Tests for SizzleSense AI strict Pydantic domain schemas (4 Pillars & 5 Core Pedagogical Questions)."""
 
 import pytest
 from pydantic import ValidationError
@@ -85,8 +85,8 @@ def test_expert_teaching_decision_rejects_missing_omissions_when_multiple_candid
         )
 
 
-def test_full_cognitive_response_answers_all_five_jd_questions():
-    """Verify the top-level response directly maps to the 5 Core Questions in the Cookpad JD."""
+def test_full_cognitive_response_answers_all_five_core_questions():
+    """Verify the top-level response directly maps to the 5 Core Pedagogical Questions."""
     five_q = FiveCoreQuestionsSummary(
         what_is_happening_now="Onions are boiling in their own expelled moisture at ~100°C rather than sautéing.",
         what_they_understand_vs_not=(

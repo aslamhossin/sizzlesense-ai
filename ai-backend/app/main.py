@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.config import SETTINGS
-from app.engine.chef_knowledge import CHEF_PRINCIPLES_REGISTRY, JD_ONION_ARCHETYPES
+from app.engine.chef_knowledge import CHEF_PRINCIPLES_REGISTRY, ONION_LEARNER_ARCHETYPES
 from app.engine.cognitive_pipeline import CognitiveCoachingPipeline
 from app.engine.learner_store import LearnerMemoryStore
 from app.evals.human_learning_eval import EvalSuiteReport, HumanLearningEvalRunner
@@ -70,7 +70,7 @@ class TapoRtspResponse(BaseModel):
 class ArchetypeComparisonItem(BaseModel):
     archetype_id: str
     display_name: str
-    jd_quote_alignment: str
+    pedagogical_scenario_summary: str
     attempt1_diagnosis: CognitiveCoachingResponse
 
 
@@ -93,7 +93,7 @@ async def get_health() -> dict:
         "default_reasoning_model": SETTINGS.default_reasoning_model,
         "default_vision_model": SETTINGS.default_vision_model,
         "chef_principles_loaded": len(CHEF_PRINCIPLES_REGISTRY),
-        "jd_archetypes_loaded": list(JD_ONION_ARCHETYPES.keys()),
+        "learner_archetypes_loaded": list(ONION_LEARNER_ARCHETYPES.keys()),
     }
 
 
@@ -118,9 +118,9 @@ async def get_learner_history(learner_id: str) -> LearnerHistoryResponse:
     "/api/v1/archetypes/compare-onion-learners",
     response_model=ArchetypeComparisonResponse,
 )
-async def compare_three_jd_onion_learners() -> ArchetypeComparisonResponse:
+async def compare_three_onion_learners() -> ArchetypeComparisonResponse:
     """
-    Demonstrates the core Cookpad JD scenario:
+    Demonstrates latent root-cause disambiguation:
     3 learners all fail to sauté onions sufficiently (identical pale visual frame),
     but receive 3 distinct latent diagnoses and single-issue coaching interventions.
     """
@@ -128,7 +128,7 @@ async def compare_three_jd_onion_learners() -> ArchetypeComparisonResponse:
     pale_frame = generate_synthetic_kitchen_frame_base64("pale_steaming")
     items: List[ArchetypeComparisonItem] = []
 
-    for archetype_id, archetype in JD_ONION_ARCHETYPES.items():
+    for archetype_id, archetype in ONION_LEARNER_ARCHETYPES.items():
         preset = archetype.attempts[1]
         diagnosis = await temp_pipeline.analyze_session(
             SessionAnalyzeRequest(
@@ -145,7 +145,7 @@ async def compare_three_jd_onion_learners() -> ArchetypeComparisonResponse:
             ArchetypeComparisonItem(
                 archetype_id=archetype_id,
                 display_name=archetype.display_name,
-                jd_quote_alignment=archetype.jd_quote_alignment,
+                pedagogical_scenario_summary=archetype.pedagogical_scenario_summary,
                 attempt1_diagnosis=diagnosis,
             )
         )

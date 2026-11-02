@@ -11,7 +11,7 @@ from app.evals.human_learning_eval import (
 @pytest.mark.asyncio
 async def test_human_learning_eval_suite_runs_all_archetypes_across_three_attempts():
     """
-    Runs all 3 Cookpad JD learner archetypes across Attempts 1 -> 2 -> 3 (9 sessions total)
+    Runs all 3 learner archetypes across Attempts 1 -> 2 -> 3 (9 sessions total)
     Plus 1 negative-control 'lucky timer' transfer case (10 sessions total)
     and verifies all 5 Human Learning Evaluation metrics score >= 0.90.
     """

@@ -32,7 +32,7 @@ Most culinary AI wrappers merely list surface-level mistakes or repeat recipe ti
 │   │   ├── schemas/domain.py       # Strict Pydantic schemas for the 4 Pillars & 5 Core Questions
 │   │   ├── vision/frame_analyzer.py# Pixel CV analyzer & Tapo C100 RTSP live ffmpeg frame grabber
 │   │   ├── engine/
-│   │   │   ├── chef_knowledge.py   # Chef Causal Knowledge Graph & 3 JD Onion Learner Archetypes
+│   │   │   ├── chef_knowledge.py   # Chef Causal Knowledge Graph & Onion Learner Archetypes
 │   │   │   ├── cognitive_pipeline.py # 4-Stage Cognitive Pipeline (Gemini 3 Live + Deterministic Engine)
 │   │   │   └── learner_store.py    # Longitudinal Attempt 1->2->3 session memory store
 │   │   └── evals/human_learning_eval.py # 10-Session Automated Human Learning Evaluation Suite

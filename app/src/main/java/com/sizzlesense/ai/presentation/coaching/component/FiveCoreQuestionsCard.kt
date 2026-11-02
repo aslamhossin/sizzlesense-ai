@@ -10,7 +10,7 @@ import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 @Composable
 fun FiveCoreQuestionsCard(questions: FiveCoreQuestionsSummary) {
     SizzleSectionCard(
-        title = "The 5 Core Cookpad JD Questions Answered",
+        title = "5 Core Pedagogical Questions Answered",
         subtitle = "Synthesized across Stages 1–4",
         icon = Icons.Default.QuestionAnswer
     ) {

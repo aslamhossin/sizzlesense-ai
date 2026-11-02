@@ -40,7 +40,7 @@ def test_analyze_session_endpoint_and_learner_history():
     assert history["sessions"][0]["attempt_number"] == 1
 
 
-def test_compare_three_jd_onion_learners_endpoint():
+def test_compare_three_onion_learners_endpoint():
     resp = client.get("/api/v1/archetypes/compare-onion-learners")
     assert resp.status_code == 200
     data = resp.json()

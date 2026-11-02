@@ -13,9 +13,9 @@ from app.vision.frame_analyzer import generate_synthetic_kitchen_frame_base64
 
 
 @pytest.mark.asyncio
-async def test_same_visual_failure_yields_three_different_diagnoses_for_jd_archetypes():
+async def test_same_visual_failure_yields_three_different_diagnoses_for_archetypes():
     """
-    Core Cookpad JD Requirement:
+    Core Pedagogical Disambiguation Requirement:
     Two or three learners may fail to sauté their onions sufficiently (same pale visual frame),
     but for completely different latent reasons (Moisture Blindness vs. Heat Anxiety vs. Perception Blindspot).
     """

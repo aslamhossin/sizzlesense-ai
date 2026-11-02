@@ -1,4 +1,4 @@
-"""Automated Human Learning Evaluation Suite (`EvalBench`) for Pillar 4 of the Cookpad JD."""
+"""Automated Human Learning Evaluation Suite (`EvalBench`)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import re
 from typing import List
 from pydantic import BaseModel, Field
 
-from app.engine.chef_knowledge import JD_ONION_ARCHETYPES
+from app.engine.chef_knowledge import ONION_LEARNER_ARCHETYPES
 from app.engine.cognitive_pipeline import CognitiveCoachingPipeline
 from app.engine.learner_store import LearnerMemoryStore
 from app.schemas.domain import (
@@ -77,8 +77,8 @@ class HumanLearningEvalRunner:
         pipeline = CognitiveCoachingPipeline(memory_store=store)
         case_results: List[EvalCaseScore] = []
 
-        # 1. Evaluate all 3 Cookpad JD Archetypes across Attempts 1 -> 2 -> 3 (9 sessions)
-        for archetype_id, archetype in JD_ONION_ARCHETYPES.items():
+        # 1. Evaluate all 3 Learner Archetypes across Attempts 1 -> 2 -> 3 (9 sessions)
+        for archetype_id, archetype in ONION_LEARNER_ARCHETYPES.items():
             learner_id = f"eval_{archetype_id}"
             for attempt_num in [1, 2, 3]:
                 preset = archetype.attempts[attempt_num]

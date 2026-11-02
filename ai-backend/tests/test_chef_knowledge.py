@@ -1,8 +1,8 @@
-"""Tests for Atomic Step 3: Chef Causal Knowledge Graph & 3 JD Sautéed Onion Learner Archetypes."""
+"""Tests for Atomic Step 3: Chef Causal Knowledge Graph & Sautéed Onion Learner Archetypes."""
 
 from app.engine.chef_knowledge import (
     CHEF_PRINCIPLES_REGISTRY,
-    JD_ONION_ARCHETYPES,
+    ONION_LEARNER_ARCHETYPES,
     ChefKnowledgeGraph,
 )
 
@@ -31,17 +31,17 @@ def test_causal_priority_selects_rank_1_and_omits_secondary_issues():
     assert omitted[1].id == "fond_glazing_and_aroma_timing"
 
 
-def test_three_jd_onion_learner_archetypes_have_distinct_latent_causes():
-    """The 3 Cookpad JD onion learners fail visually in the same way on Attempt 1, but for 3 distinct latent reasons."""
-    assert set(JD_ONION_ARCHETYPES.keys()) == {
+def test_three_onion_learner_archetypes_have_distinct_latent_causes():
+    """The 3 onion learner archetypes fail visually in the same way on Attempt 1, but for 3 distinct latent reasons."""
+    assert set(ONION_LEARNER_ARCHETYPES.keys()) == {
         "moisture_blindness",
         "heat_anxiety",
         "perception_blindspot",
     }
 
-    m_learner = JD_ONION_ARCHETYPES["moisture_blindness"]
-    h_learner = JD_ONION_ARCHETYPES["heat_anxiety"]
-    p_learner = JD_ONION_ARCHETYPES["perception_blindspot"]
+    m_learner = ONION_LEARNER_ARCHETYPES["moisture_blindness"]
+    h_learner = ONION_LEARNER_ARCHETYPES["heat_anxiety"]
+    p_learner = ONION_LEARNER_ARCHETYPES["perception_blindspot"]
 
     # All 3 have 3-attempt progressions (Attempt 1 -> Attempt 2 -> Attempt 3)
     assert len(m_learner.attempts) == 3

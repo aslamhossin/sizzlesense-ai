@@ -1,4 +1,4 @@
-"""Strict Pydantic v2 schemas for the 4 Applied AI Pillars and 5 Core JD Questions."""
+"""Strict Pydantic v2 schemas for the 4 Applied AI Pillars and 5 Core Pedagogical Questions."""
 
 from __future__ import annotations
 
@@ -157,7 +157,7 @@ class SensoryCoachingOutput(BaseModel):
 
 
 class FiveCoreQuestionsSummary(BaseModel):
-    """Direct 1:1 answers to the 5 Core Questions in the Cookpad Applied AI Engineer JD."""
+    """Direct 1:1 answers to the 5 Core Pedagogical Questions."""
 
     what_is_happening_now: str
     what_they_understand_vs_not: str

@@ -1,4 +1,4 @@
-"""Chef Causal Knowledge Graph & the 3 Cookpad JD Sautéed Onion Learner Archetypes."""
+"""Chef Causal Knowledge Graph & Sautéed Onion Learner Archetypes."""
 
 from __future__ import annotations
 
@@ -38,11 +38,11 @@ class AttemptScenarioPreset(BaseModel):
 
 
 class LearnerArchetypeScenario(BaseModel):
-    """Models one of the 3 Cookpad JD Sautéed Onion learners across 3 iterative attempts."""
+    """Models one of the 3 Sautéed Onion learner archetypes across 3 iterative attempts."""
 
     archetype_id: str
     display_name: str
-    jd_quote_alignment: str
+    pedagogical_scenario_summary: str
     primary_principle_id: str
     latent_understanding_baseline: str
     latent_misconception_baseline: str
@@ -117,11 +117,11 @@ CHEF_PRINCIPLES_REGISTRY: Dict[str, ChefPrinciple] = {
 }
 
 
-JD_ONION_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
+ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
     "moisture_blindness": LearnerArchetypeScenario(
         archetype_id="moisture_blindness",
         display_name="Learner A: Moisture Blindness (Crowds pan & stirs constantly in liquid)",
-        jd_quote_alignment="One may not understand why moisture needs to be cooked off.",
+        pedagogical_scenario_summary="One may not understand why moisture needs to be cooked off.",
         primary_principle_id="moisture_evaporation_gate",
         latent_understanding_baseline="Understands basic ingredient prep and medium burner setting.",
         latent_misconception_baseline=(
@@ -166,7 +166,7 @@ JD_ONION_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
     "heat_anxiety": LearnerArchetypeScenario(
         archetype_id="heat_anxiety",
         display_name="Learner B: Heat Anxiety (Fears burning & turns heat down too low)",
-        jd_quote_alignment="Another may be afraid of burning the onions and may have turned the heat down too far.",
+        pedagogical_scenario_summary="Another may be afraid of burning the onions and may have turned the heat down too far.",
         primary_principle_id="thermal_recovery_and_heat_control",
         latent_understanding_baseline="Understands that burnt onions taste bitter and watches the pan closely.",
         latent_misconception_baseline=(
@@ -211,7 +211,7 @@ JD_ONION_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
     "perception_blindspot": LearnerArchetypeScenario(
         archetype_id="perception_blindspot",
         display_name="Learner C: Perception Blindspot (Believes translucent onions are browned)",
-        jd_quote_alignment="Or the learner may believe they cooked the onions sufficiently even though the video shows otherwise.",
+        pedagogical_scenario_summary="Or the learner may believe they cooked the onions sufficiently even though the video shows otherwise.",
         primary_principle_id="visual_and_acoustic_doneness_calibration",
         latent_understanding_baseline="Follows recipe steps sequentially and stirs diligently.",
         latent_misconception_baseline=(

@@ -20,7 +20,7 @@ fun OnionArchetypeScenarioCard(
     onIntent: (KitchenUiIntent) -> Unit
 ) {
     SizzleSectionCard(
-        title = "3 Cookpad JD Sautéed Onion Learner Archetypes",
+        title = "Sautéed Onion Learner Archetypes",
         subtitle = "Same pale onion failure -> 3 distinct cognitive diagnoses",
         icon = Icons.Default.Person
     ) {
