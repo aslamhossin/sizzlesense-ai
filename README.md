@@ -22,7 +22,15 @@ Most culinary AI wrappers merely list surface-level mistakes or repeat recipe ti
 
 ---
 
-## 2. Repository Structure
+## 2. Live Product Showcase (Captured on Google Pixel 7 + Tapo C100 RTSP)
+
+| 1. Kitchen Live (Tapo C100 RTSP & Archetypes) | 2. Coach Loop (Single-Issue Sensory Coaching) | 3. AI X-Ray (Stages 1–3 & Restraint Graph) | 4. Eval Bench (10-Trajectory Suite) |
+| :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/01_kitchen_live.png" width="210" alt="Kitchen Live Screen" /> | <img src="docs/screenshots/02_coaching_mastery.png" width="210" alt="Coach Loop Screen" /> | <img src="docs/screenshots/03_ai_xray_trace.png" width="210" alt="AI X-Ray Trace Screen" /> | <img src="docs/screenshots/04_eval_bench_suite.png" width="210" alt="Eval Bench Suite Screen" /> |
+
+---
+
+## 3. Repository Structure
 
 ```text
 .
@@ -51,7 +59,7 @@ Most culinary AI wrappers merely list surface-level mistakes or repeat recipe ti
 
 ---
 
-## 3. Quick Start
+## 4. Quick Start
 
 ### A. Run the Python AI Backend & Evaluation Suite
 ```bash
