@@ -16,7 +16,7 @@ import okhttp3.OkHttpClient
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val CONNECT_TIMEOUT_SECONDS = 8L
+    private const val CONNECT_TIMEOUT_SECONDS = 2L
     private const val READ_TIMEOUT_SECONDS = 28L
 
     @Provides

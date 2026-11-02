@@ -18,7 +18,7 @@ android {
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "DEFAULT_BACKEND_URL", "\"http://192.168.11.12:8000\"")
+        buildConfigField("String", "DEFAULT_BACKEND_URL", "\"http://192.168.11.6:8000\"")
         buildConfigField("String", "DEFAULT_TAPO_IP", "\"192.168.11.16\"")
     }
 

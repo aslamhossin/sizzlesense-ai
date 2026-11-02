@@ -106,7 +106,7 @@ class FailoverJsonHttpClient @Inject constructor(
     companion object {
         private const val JSON_MEDIA_TYPE = "application/json; charset=utf-8"
         const val EMULATOR_HOST_URL = "http://10.0.2.2:8000"
-        const val MAC_WORKSTATION_LAN_URL = "http://192.168.11.12:8000"
+        const val MAC_WORKSTATION_LAN_URL = "http://192.168.11.6:8000"
         const val LOCALHOST_URL = "http://127.0.0.1:8000"
     }
 }

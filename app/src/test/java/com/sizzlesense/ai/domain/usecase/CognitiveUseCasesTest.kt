@@ -116,11 +116,11 @@ class CognitiveUseCasesTest {
             httpClient = NetworkModule.provideOkHttpClient(),
             ioDispatcher = UnconfinedTestDispatcher()
         )
-        val endpoints = client.resolveCandidateEndpoints("http://192.168.11.12:8000/")
+        val endpoints = client.resolveCandidateEndpoints("http://192.168.11.6:8000/")
 
         assertEquals(
             listOf(
-                "http://192.168.11.12:8000",
+                "http://192.168.11.6:8000",
                 "http://10.0.2.2:8000",
                 "http://127.0.0.1:8000"
             ),
