@@ -3,6 +3,7 @@ package com.sizzlesense.ai.data.repository
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
+import com.sizzlesense.ai.data.remote.DynamicBaseUrlInterceptor
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
 import com.sizzlesense.ai.di.module.NetworkModule
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
@@ -18,6 +19,7 @@ import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -30,11 +32,15 @@ class SizzleCognitiveRepositoryTest {
 
     private fun buildRepositoryWithInterceptor(interceptor: Interceptor): SizzleCognitiveRepository {
         val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(DynamicBaseUrlInterceptor())
             .addInterceptor(interceptor)
             .build()
-        val remoteClient = FailoverJsonHttpClient(
+        val apiService = NetworkModule.provideSizzleSenseApiService(
             json = json,
-            httpClient = okHttpClient,
+            okHttpClient = okHttpClient
+        )
+        val remoteClient = FailoverJsonHttpClient(
+            apiService = apiService,
             ioDispatcher = testDispatcher
         )
         return SizzleCognitiveRepository(
@@ -184,6 +190,34 @@ class SizzleCognitiveRepositoryTest {
             val errorResult = httpErrorRepo.runEvaluationBenchmark("http://192.168.11.12:8000")
             assertTrue(errorResult is AppResult.Failure)
             assertTrue((errorResult as AppResult.Failure).error is AppError.HttpError)
+        }
+    }
+
+    @Test
+    fun dynamicBaseUrlInterceptor_rewritesTargetHostAndStripsInternalHeader() {
+        runTest {
+            val visitedHosts = mutableListOf<String>()
+            var leakedInternalHeader: String? = null
+
+            val repository = buildRepositoryWithInterceptor { chain ->
+                val req = chain.request()
+                visitedHosts.add("${req.url.host}:${req.url.port}${req.url.encodedPath}")
+                leakedInternalHeader = req.header("X-Sizzle-Target-Base-Url")
+                throw IOException("Simulated timeout")
+            }
+
+            repository.runEvaluationBenchmark("http://192.168.11.99:8000")
+
+            assertNull(leakedInternalHeader)
+            assertEquals(
+                listOf(
+                    "192.168.11.99:8000/api/v1/evals/run",
+                    "10.0.2.2:8000/api/v1/evals/run",
+                    "192.168.11.6:8000/api/v1/evals/run",
+                    "127.0.0.1:8000/api/v1/evals/run"
+                ),
+                visitedHosts
+            )
         }
     }
 }

@@ -112,8 +112,10 @@ class CognitiveUseCasesTest {
     @Test
     fun failoverJsonHttpClient_resolvesDeduplicatedCandidateEndpointsInPriorityOrder() {
         val client = FailoverJsonHttpClient(
-            json = NetworkModule.provideJson(),
-            httpClient = NetworkModule.provideOkHttpClient(),
+            apiService = NetworkModule.provideSizzleSenseApiService(
+                json = NetworkModule.provideJson(),
+                okHttpClient = NetworkModule.provideOkHttpClient()
+            ),
             ioDispatcher = UnconfinedTestDispatcher()
         )
         val endpoints = client.resolveCandidateEndpoints("http://192.168.11.6:8000/")

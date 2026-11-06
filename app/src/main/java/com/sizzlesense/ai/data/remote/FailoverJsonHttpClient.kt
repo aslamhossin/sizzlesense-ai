@@ -4,22 +4,25 @@ import com.sizzlesense.ai.core.network.safeApiCall
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppException
 import com.sizzlesense.ai.core.result.AppResult
+import com.sizzlesense.ai.data.remote.dto.coaching.CognitiveCoachingResponseDto
+import com.sizzlesense.ai.data.remote.dto.eval.EvalSuiteReportDto
+import com.sizzlesense.ai.data.remote.dto.request.SessionAnalyzeRequestDto
+import com.sizzlesense.ai.data.remote.dto.request.TapoLiveAnalyzeRequestDto
 import com.sizzlesense.ai.di.qualifier.IoDispatcher
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import kotlinx.serialization.SerializationException
+import retrofit2.HttpException
 
+/**
+ * Executes declarative Retrofit [SizzleSenseApiService] calls across candidate LAN/emulator endpoints,
+ * preserving structured [AppError] classification (`HttpError`, `SerializationError`, `NetworkUnavailable`).
+ */
 @Singleton
 class FailoverJsonHttpClient @Inject constructor(
-    private val json: Json,
-    private val httpClient: OkHttpClient,
+    private val apiService: SizzleSenseApiService,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
@@ -32,68 +35,52 @@ class FailoverJsonHttpClient @Inject constructor(
         ).filter { it.isNotBlank() }.distinct()
     }
 
-    suspend fun <REQ, RES> postTypedJsonWithFailover(
+    suspend fun analyzeSessionWithFailover(
         primaryBaseUrl: String,
-        endpointPath: String,
-        requestBody: REQ,
-        requestSerializer: KSerializer<REQ>,
-        responseSerializer: KSerializer<RES>
+        request: SessionAnalyzeRequestDto
+    ): AppResult<CognitiveCoachingResponseDto> = executeWithFailover(primaryBaseUrl) { targetUrl ->
+        apiService.analyzeSession(
+            targetBaseUrl = targetUrl,
+            request = request
+        )
+    }
+
+    suspend fun captureFromTapoAndAnalyzeWithFailover(
+        primaryBaseUrl: String,
+        request: TapoLiveAnalyzeRequestDto
+    ): AppResult<CognitiveCoachingResponseDto> = executeWithFailover(primaryBaseUrl) { targetUrl ->
+        apiService.captureFromTapoAndAnalyze(
+            targetBaseUrl = targetUrl,
+            request = request
+        )
+    }
+
+    suspend fun runEvaluationBenchmarkWithFailover(
+        primaryBaseUrl: String
+    ): AppResult<EvalSuiteReportDto> = executeWithFailover(primaryBaseUrl) { targetUrl ->
+        apiService.runEvaluationBenchmark(targetBaseUrl = targetUrl)
+    }
+
+    suspend fun <RES : Any> executeWithFailover(
+        primaryBaseUrl: String,
+        call: suspend (targetBaseUrl: String) -> RES
     ): AppResult<RES> = safeApiCall(ioDispatcher) {
-        val encodedBody = json.encodeToString(requestSerializer, requestBody)
-        executeFailoverPost(
-            primaryBaseUrl = primaryBaseUrl,
-            endpointPath = endpointPath,
-            jsonBody = encodedBody,
-            responseSerializer = responseSerializer
-        )
-    }
-
-    suspend fun <T> postJsonWithFailover(
-        primaryBaseUrl: String,
-        endpointPath: String,
-        jsonBody: String,
-        responseSerializer: KSerializer<T>
-    ): AppResult<T> = safeApiCall(ioDispatcher) {
-        executeFailoverPost(
-            primaryBaseUrl = primaryBaseUrl,
-            endpointPath = endpointPath,
-            jsonBody = jsonBody,
-            responseSerializer = responseSerializer
-        )
-    }
-
-    private fun <T> executeFailoverPost(
-        primaryBaseUrl: String,
-        endpointPath: String,
-        jsonBody: String,
-        responseSerializer: KSerializer<T>
-    ): T {
         val candidates = resolveCandidateEndpoints(primaryBaseUrl)
-        val mediaType = JSON_MEDIA_TYPE.toMediaType()
         var lastError: AppError = AppError.NetworkUnavailable("No candidate endpoints configured")
 
         for (rootUrl in candidates) {
             try {
-                val request = Request.Builder()
-                    .url("$rootUrl$endpointPath")
-                    .post(jsonBody.toRequestBody(mediaType))
-                    .build()
-
-                httpClient.newCall(request).execute().use { response ->
-                    val rawBody = response.body.string()
-                    if (response.isSuccessful && rawBody.isNotBlank()) {
-                        return json.decodeFromString(responseSerializer, rawBody)
-                    } else {
-                        lastError = AppError.HttpError(
-                            statusCode = response.code,
-                            responseBody = rawBody
-                        )
-                    }
-                }
+                return@safeApiCall call(rootUrl)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: kotlinx.serialization.SerializationException) {
+            } catch (e: SerializationException) {
                 throw e
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string().orEmpty()
+                lastError = AppError.HttpError(
+                    statusCode = e.code(),
+                    responseBody = errorBody
+                )
             } catch (e: Exception) {
                 lastError = AppError.NetworkUnavailable(
                     e.message ?: "Endpoint $rootUrl unreachable"
@@ -104,7 +91,6 @@ class FailoverJsonHttpClient @Inject constructor(
     }
 
     companion object {
-        private const val JSON_MEDIA_TYPE = "application/json; charset=utf-8"
         const val EMULATOR_HOST_URL = "http://10.0.2.2:8000"
         const val MAC_WORKSTATION_LAN_URL = "http://192.168.11.6:8000"
         const val LOCALHOST_URL = "http://127.0.0.1:8000"

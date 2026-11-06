@@ -78,6 +78,8 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
 
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.exoplayer.rtsp)

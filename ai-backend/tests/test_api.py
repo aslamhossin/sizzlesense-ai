@@ -2,6 +2,9 @@
 
 from fastapi.testclient import TestClient
 
+from app.api.dependencies import get_eval_runner, get_memory_store
+from app.engine.gemini_client import GeminiStructuredClient
+from app.schemas.domain import CognitiveCoachingResponse
 from app.main import app
 
 client = TestClient(app)
@@ -74,3 +77,13 @@ def test_tapo_rtsp_url_endpoint_encodes_credentials():
     assert resp.status_code == 200
     data = resp.json()
     assert data["rtsp_url"] == "rtsp://chef:p%40ss%3Aword@192.168.1.50:554/stream1"
+
+
+def test_structured_gemini_schema_and_di_providers():
+    models = GeminiStructuredClient.resolve_candidate_models("gemini-3-flash-preview")
+    assert models[0] == "gemini-3-flash-preview"
+    schema = CognitiveCoachingResponse.model_json_schema()
+    assert "stage1_physical_observation" in schema["properties"]
+    assert "stage3_teaching_decision" in schema["properties"]
+    assert get_memory_store() is get_memory_store()
+    assert get_eval_runner() is get_eval_runner()

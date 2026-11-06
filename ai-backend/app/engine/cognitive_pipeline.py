@@ -16,6 +16,7 @@ from app.engine.chef_knowledge import (
     ChefPrinciple,
     LearnerArchetypeScenario,
 )
+from app.engine.gemini_client import GeminiStructuredClient
 from app.engine.learner_store import LearnerMemoryStore
 from app.schemas.domain import (
     AcousticSizzleSignature,
@@ -472,88 +473,11 @@ class CognitiveCoachingPipeline:
         prior_session: Optional[CognitiveCoachingResponse],
         api_key: str,
     ) -> CognitiveCoachingResponse:
-        """Calls Google Gemini API with the live camera frame and structured JSON output."""
+        """Calls Google Gemini API with the live camera frame and structured JSON schema enforcement."""
         baseline = self._run_deterministic_pipeline(request, cv_metrics, prior_session)
-        preferred = request.preferred_reasoning_model or SETTINGS.default_reasoning_model
-        candidate_models = list(
-            dict.fromkeys(
-                [
-                    "gemini-3-flash-preview",
-                    "gemini-3.1-pro-preview",
-                    preferred,
-                    "gemini-2.5-pro",
-                    "gemini-2.5-flash",
-                ]
-            )
+        return await GeminiStructuredClient.generate_structured_coaching(
+            request=request,
+            cv_metrics=cv_metrics,
+            baseline=baseline,
+            api_key=api_key,
         )
-
-        system_prompt = (
-            "You are the Applied AI Human Learning Engine for SizzleSense AI. "
-            "Inspect the attached kitchen camera image and the learner's reflection. "
-            "Return ONLY a single valid JSON object with the EXACT top-level keys of the JSON template below "
-            "(`session_id`, `learner_id`, `dish_id`, `attempt_number`, `reasoning_model_used`, `vision_model_used`, "
-            "`five_core_questions`, `stage1_physical_observation`, `stage2_learner_state`, `stage3_teaching_decision`, "
-            "`stage4_sensory_coaching`). Do NOT wrap it in an outer key. "
-            "Update `observed_timeline_facts[0].visual_observation`, `inferred_physical_states`, "
-            "`five_core_questions`, and `stage4_sensory_coaching.coaching_message` based on what you actually "
-            "see in the attached camera image and learner reflection, while keeping at least 1 item in `deliberately_omitted_issues`."
-        )
-
-        parts: list[dict] = [
-            {
-                "text": (
-                    f"{system_prompt}\n\n"
-                    f"Learner Reflection: {request.learner_reflection}\n"
-                    f"Computer Vision Metrics: {json.dumps(cv_metrics.model_dump())}\n"
-                    f"JSON Template to populate and return:\n{json.dumps(baseline.model_dump())}"
-                )
-            }
-        ]
-        if request.keyframe_base64_list:
-            clean_b64 = request.keyframe_base64_list[-1].split(",")[-1].strip()
-            parts.append(
-                {
-                    "inlineData": {
-                        "mimeType": "image/jpeg",
-                        "data": clean_b64,
-                    }
-                }
-            )
-
-        payload = {
-            "contents": [{"parts": parts}],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-            },
-        }
-
-        last_err: Exception | None = None
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            for model_id in candidate_models:
-                url = f"{SETTINGS.gemini_api_base_url}/models/{model_id}:generateContent"
-                try:
-                    resp = await client.post(
-                        url,
-                        headers={
-                            "x-goog-api-key": api_key,
-                            "Content-Type": "application/json",
-                        },
-                        json=payload,
-                    )
-                    if resp.status_code != 200:
-                        continue
-                    data = resp.json()
-                    text_json = data["candidates"][0]["content"]["parts"][0]["text"]
-                    raw_obj = json.loads(text_json)
-                    if isinstance(raw_obj, dict) and "baseline_reference" in raw_obj:
-                        raw_obj = raw_obj["baseline_reference"]
-                    parsed = CognitiveCoachingResponse.model_validate(raw_obj)
-                    parsed.reasoning_model_used = f"{model_id} (Live Gemini API)"
-                    return parsed
-                except Exception as exc:
-                    last_err = exc
-                    continue
-
-        if last_err:
-            raise last_err
-        raise RuntimeError("No Gemini model endpoint succeeded.")
