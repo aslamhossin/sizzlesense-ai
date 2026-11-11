@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.presentation.common.component.DismissibleErrorBanner
+import com.sizzlesense.ai.presentation.kitchen.component.AcousticSizzleCaptureCard
 import com.sizzlesense.ai.presentation.kitchen.component.OnionArchetypeScenarioCard
 import com.sizzlesense.ai.presentation.kitchen.component.TapoBackendSettingsCard
 import com.sizzlesense.ai.presentation.kitchen.component.TapoRtspPlayerView
@@ -63,6 +64,13 @@ fun KitchenScreen(
             },
             onFrameCaptured = { b64, label ->
                 onIntent(KitchenUiIntent.OnLiveFrameCaptured(b64, label))
+            }
+        )
+
+        AcousticSizzleCaptureCard(
+            capturedAudioLabel = state.capturedAudioLabel,
+            onAudioCaptured = { wavB64, label ->
+                onIntent(KitchenUiIntent.OnAudioSampleCaptured(wavB64, label))
             }
         )
 

@@ -5,6 +5,7 @@ data class PhysicalObservationReport(
     val inferredPhysicalStates: List<String>,
     val environmentalUncertainties: List<String> = emptyList(),
     val cvMetrics: ComputerVisionMetrics? = null,
+    val acousticMetrics: AcousticSpectralMetrics? = null,
     val learnerStatedBelief: String,
     val perceptionGapLevel: PerceptionGapLevel,
     val perceptionGapExplanation: String

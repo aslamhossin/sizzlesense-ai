@@ -56,6 +56,18 @@ class InMemorySessionStore : SessionStore {
         }
     }
 
+    override fun recordCapturedAudio(
+        base64Wav: String,
+        timestampLabel: String
+    ) {
+        sessionState.update { current ->
+            current.copy(
+                capturedAudioWavBase64 = base64Wav,
+                capturedAudioLabel = timestampLabel
+            )
+        }
+    }
+
     override fun selectArchetype(archetype: LearnerArchetypeOption) {
         mutateAndPersist { current ->
             val presetText = archetype

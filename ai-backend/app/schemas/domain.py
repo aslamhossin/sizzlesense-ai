@@ -54,6 +54,17 @@ class ComputerVisionMetrics(BaseModel):
     dominant_visual_regime: str
 
 
+class AcousticSpectralMetrics(BaseModel):
+    """Objective FFT spectral metrics extracted from pan audio (16kHz PCM WAV)."""
+
+    dominant_frequency_hz: float = Field(..., ge=0.0)
+    spectral_centroid_hz: float = Field(..., ge=0.0)
+    high_freq_sizzle_ratio: float = Field(..., ge=0.0, le=1.0)
+    low_freq_bubble_ratio: float = Field(..., ge=0.0, le=1.0)
+    rms_energy_db: float
+    inferred_acoustic_signature: AcousticSizzleSignature
+
+
 class PhysicalObservationReport(BaseModel):
     """Pillar 1: Physical World Understanding (Observed Facts vs. Inferred States vs. Learner Belief)."""
 
@@ -67,6 +78,7 @@ class PhysicalObservationReport(BaseModel):
         description="Home kitchen variables that cannot be directly observed (e.g., burner BTU)",
     )
     cv_metrics: Optional[ComputerVisionMetrics] = None
+    acoustic_metrics: Optional[AcousticSpectralMetrics] = None
     learner_stated_belief: str = Field(..., description="What the learner claimed in their reflection")
     perception_gap_level: PerceptionGapLevel
     perception_gap_explanation: str
@@ -182,6 +194,10 @@ class SessionAnalyzeRequest(BaseModel):
     keyframe_base64_list: List[str] = Field(
         default_factory=list,
         description="Optional base64-encoded JPEG frames captured from Tapo C100 RTSP or gallery",
+    )
+    audio_wav_base64: Optional[str] = Field(
+        default=None,
+        description="Optional base64-encoded 16-bit PCM WAV clip of pan sizzle audio",
     )
     acoustic_hint: Optional[AcousticSizzleSignature] = None
     gemini_api_key: Optional[str] = None

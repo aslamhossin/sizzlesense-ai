@@ -7,6 +7,7 @@ import httpx
 
 from app.config import SETTINGS
 from app.schemas.domain import (
+    AcousticSpectralMetrics,
     CognitiveCoachingResponse,
     ComputerVisionMetrics,
     SessionAnalyzeRequest,
@@ -53,9 +54,15 @@ class GeminiStructuredClient:
         cv_metrics: ComputerVisionMetrics,
         baseline: CognitiveCoachingResponse,
         api_key: str,
+        acoustic_metrics: AcousticSpectralMetrics | None = None,
     ) -> CognitiveCoachingResponse:
         candidate_models = cls.resolve_candidate_models(
             request.preferred_reasoning_model
+        )
+        acoustic_line = (
+            f"Acoustic FFT Metrics: {json.dumps(acoustic_metrics.model_dump())}\n"
+            if acoustic_metrics
+            else ""
         )
         parts: list[dict] = [
             {
@@ -63,6 +70,7 @@ class GeminiStructuredClient:
                     f"{cls.SYSTEM_INSTRUCTION}\n\n"
                     f"Learner Reflection: {request.learner_reflection}\n"
                     f"Computer Vision Metrics: {json.dumps(cv_metrics.model_dump())}\n"
+                    f"{acoustic_line}"
                     f"Baseline Reference JSON:\n{json.dumps(baseline.model_dump())}"
                 )
             }
@@ -75,6 +83,17 @@ class GeminiStructuredClient:
                     "inlineData": {
                         "mimeType": "image/jpeg",
                         "data": clean_b64,
+                    }
+                }
+            )
+
+        if request.audio_wav_base64:
+            clean_audio_b64 = request.audio_wav_base64.split(",")[-1].strip()
+            parts.append(
+                {
+                    "inlineData": {
+                        "mimeType": "audio/wav",
+                        "data": clean_audio_b64,
                     }
                 }
             )

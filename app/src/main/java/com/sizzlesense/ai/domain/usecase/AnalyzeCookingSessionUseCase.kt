@@ -16,6 +16,7 @@ class AnalyzeCookingSessionUseCase @Inject constructor(
         attemptNumber: Int,
         learnerReflection: String,
         capturedFrameBase64: String?,
+        capturedAudioWavBase64: String? = null,
         dishId: String = DEFAULT_DISH_ID
     ): AppResult<CognitiveCoachingResponse> {
         val frames = capturedFrameBase64
@@ -29,7 +30,8 @@ class AnalyzeCookingSessionUseCase @Inject constructor(
             attemptNumber = attemptNumber.coerceIn(1, 3),
             learnerReflection = learnerReflection.trim(),
             archetypeHint = archetypeId,
-            keyframeBase64List = frames
+            keyframeBase64List = frames,
+            audioWavBase64 = capturedAudioWavBase64?.takeIf { it.isNotBlank() }
         )
         return gateway.analyzeSession(
             baseUrl = baseUrl,

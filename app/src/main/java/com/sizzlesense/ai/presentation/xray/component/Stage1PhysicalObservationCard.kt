@@ -30,6 +30,13 @@ fun Stage1PhysicalObservationCard(
                 color = SizzleTheme.colors.textSecondary
             )
         }
+        stage1.acousticMetrics?.let { audio ->
+            Text(
+                text = "Audio FFT -> Signature: ${audio.inferredAcousticSignature} | Centroid: ${audio.spectralCentroidHz} Hz | Sizzle: ${audio.highFreqSizzleRatio} | Bubble: ${audio.lowFreqBubbleRatio} | RMS: ${audio.rmsEnergyDb} dBFS",
+                style = SizzleTheme.typography.bodySmall,
+                color = SizzleTheme.colors.textSecondary
+            )
+        }
         Text(
             text = "Inferred Physical States:",
             style = SizzleTheme.typography.labelMedium,

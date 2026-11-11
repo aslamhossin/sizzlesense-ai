@@ -18,6 +18,8 @@ data class SessionAnalyzeRequestDto(
     val archetypeHint: String? = null,
     @SerialName("keyframe_base64_list")
     val keyframeBase64List: List<String> = emptyList(),
+    @SerialName("audio_wav_base64")
+    val audioWavBase64: String? = null,
     @SerialName("gemini_api_key")
     val geminiApiKey: String? = null,
     @SerialName("preferred_reasoning_model")
@@ -31,6 +33,7 @@ fun SessionAnalyzeRequest.toDto(): SessionAnalyzeRequestDto = SessionAnalyzeRequ
     learnerReflection = learnerReflection,
     archetypeHint = archetypeHint,
     keyframeBase64List = keyframeBase64List,
+    audioWavBase64 = audioWavBase64,
     geminiApiKey = geminiApiKey,
     preferredReasoningModel = preferredReasoningModel
 )

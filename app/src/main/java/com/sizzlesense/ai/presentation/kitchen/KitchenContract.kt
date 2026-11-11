@@ -8,6 +8,7 @@ data class KitchenUiState(
     val backendBaseUrl: String = BuildConfig.DEFAULT_BACKEND_URL,
     val tapoConfig: TapoCameraConfig = TapoCameraConfig(ipAddress = BuildConfig.DEFAULT_TAPO_IP),
     val capturedFrameLabel: String = "No live frame captured yet",
+    val capturedAudioLabel: String = "No pan audio sample captured",
     val selectedArchetype: LearnerArchetypeOption = LearnerArchetypeOption.MOISTURE_BLINDNESS,
     val currentAttemptNumber: Int = 1,
     val learnerReflectionText: String =
@@ -28,6 +29,10 @@ sealed interface KitchenUiIntent {
     data class SetTapoStreamConnected(val connected: Boolean) : KitchenUiIntent
     data class OnLiveFrameCaptured(
         val base64Jpeg: String,
+        val timestampLabel: String
+    ) : KitchenUiIntent
+    data class OnAudioSampleCaptured(
+        val base64Wav: String,
         val timestampLabel: String
     ) : KitchenUiIntent
     data class SelectArchetype(val archetype: LearnerArchetypeOption) : KitchenUiIntent

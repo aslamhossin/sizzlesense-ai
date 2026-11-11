@@ -20,6 +20,11 @@ interface SessionStore {
         timestampLabel: String
     )
 
+    fun recordCapturedAudio(
+        base64Wav: String,
+        timestampLabel: String
+    )
+
     fun selectArchetype(archetype: LearnerArchetypeOption)
 
     fun selectAttemptNumber(attemptNumber: Int)

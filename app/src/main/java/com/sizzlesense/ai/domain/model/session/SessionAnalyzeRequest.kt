@@ -7,6 +7,7 @@ data class SessionAnalyzeRequest(
     val learnerReflection: String,
     val archetypeHint: String? = null,
     val keyframeBase64List: List<String> = emptyList(),
+    val audioWavBase64: String? = null,
     val geminiApiKey: String? = null,
     val preferredReasoningModel: String = "gemini-3-flash-preview"
 )

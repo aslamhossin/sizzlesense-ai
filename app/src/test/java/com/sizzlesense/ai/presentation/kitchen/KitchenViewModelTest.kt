@@ -4,10 +4,13 @@ import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.session.InMemorySessionStore
+import com.sizzlesense.ai.domain.model.coaching.AcousticSizzleSignature
 import com.sizzlesense.ai.domain.model.session.LearnerArchetypeOption
 import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
+import com.sizzlesense.ai.presentation.kitchen.component.PcmWavSizzleCodec
 import com.sizzlesense.ai.testing.MainDispatcherRule
+import java.util.Base64
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -141,6 +144,49 @@ class KitchenViewModelTest {
 
             viewModel.onIntent(KitchenUiIntent.ClearError)
             assertNull(viewModel.uiState.value.errorMessage)
+
+            collectorJob.cancel()
+        }
+    }
+
+    @Test
+    fun onAudioSampleCaptured_encodesValidRiffWavAndForwardsAudioToAnalyzeGateway() {
+        runTest {
+            var forwardedAudioB64: String? = null
+            val sessionStore = InMemorySessionStore()
+            val viewModel = KitchenViewModel(
+                sessionStore = sessionStore,
+                analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
+                    forwardedAudioB64 = req.audioWavBase64
+                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                },
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
+                    error("Unused")
+                }
+            )
+
+            val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
+
+            val wavB64 = PcmWavSizzleCodec.synthesizePresetWavBase64(
+                signature = AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE,
+                durationMs = 200
+            )
+            val decodedBytes = Base64.getDecoder().decode(wavB64)
+            assertEquals("RIFF", String(decodedBytes, 0, 4, Charsets.US_ASCII))
+            assertEquals("WAVE", String(decodedBytes, 8, 4, Charsets.US_ASCII))
+
+            viewModel.onIntent(
+                KitchenUiIntent.OnAudioSampleCaptured(
+                    base64Wav = wavB64,
+                    timestampLabel = "Preset WAV: 155°C Maillard Sizzle"
+                )
+            )
+            assertEquals("Preset WAV: 155°C Maillard Sizzle", viewModel.uiState.value.capturedAudioLabel)
+
+            viewModel.onIntent(KitchenUiIntent.AnalyzeCurrentSession)
+            val effect = viewModel.effects.first()
+            assertEquals(KitchenUiEffect.NavigateToCoaching, effect)
+            assertEquals(wavB64, forwardedAudioB64)
 
             collectorJob.cancel()
         }

@@ -24,6 +24,7 @@ class KitchenViewModel @Inject constructor(
                     backendBaseUrl = session.backendBaseUrl,
                     tapoConfig = session.tapoConfig,
                     capturedFrameLabel = session.capturedFrameLabel,
+                    capturedAudioLabel = session.capturedAudioLabel,
                     selectedArchetype = session.selectedArchetype,
                     currentAttemptNumber = session.currentAttemptNumber,
                     learnerReflectionText = session.learnerReflectionText
@@ -62,6 +63,13 @@ class KitchenViewModel @Inject constructor(
                 )
             }
 
+            is KitchenUiIntent.OnAudioSampleCaptured -> {
+                sessionStore.recordCapturedAudio(
+                    base64Wav = intent.base64Wav,
+                    timestampLabel = intent.timestampLabel
+                )
+            }
+
             is KitchenUiIntent.SelectArchetype -> {
                 sessionStore.selectArchetype(intent.archetype)
             }
@@ -89,7 +97,8 @@ class KitchenViewModel @Inject constructor(
                 archetypeId = snapshot.selectedArchetype.id,
                 attemptNumber = snapshot.currentAttemptNumber,
                 learnerReflection = snapshot.learnerReflectionText,
-                capturedFrameBase64 = snapshot.capturedFrameBase64
+                capturedFrameBase64 = snapshot.capturedFrameBase64,
+                capturedAudioWavBase64 = snapshot.capturedAudioWavBase64
             )
         }
     }

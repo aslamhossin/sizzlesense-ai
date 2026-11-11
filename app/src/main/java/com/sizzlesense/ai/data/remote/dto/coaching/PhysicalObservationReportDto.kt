@@ -15,6 +15,8 @@ data class PhysicalObservationReportDto(
     val environmentalUncertainties: List<String> = emptyList(),
     @SerialName("cv_metrics")
     val cvMetrics: ComputerVisionMetricsDto? = null,
+    @SerialName("acoustic_metrics")
+    val acousticMetrics: AcousticSpectralMetricsDto? = null,
     @SerialName("learner_stated_belief")
     val learnerStatedBelief: String,
     @SerialName("perception_gap_level")
@@ -28,6 +30,7 @@ fun PhysicalObservationReportDto.toDomain(): PhysicalObservationReport = Physica
     inferredPhysicalStates = inferredPhysicalStates,
     environmentalUncertainties = environmentalUncertainties,
     cvMetrics = cvMetrics?.toDomain(),
+    acousticMetrics = acousticMetrics?.toDomain(),
     learnerStatedBelief = learnerStatedBelief,
     perceptionGapLevel = runCatching {
         PerceptionGapLevel.valueOf(perceptionGapLevel)
@@ -40,6 +43,7 @@ fun PhysicalObservationReport.toDto(): PhysicalObservationReportDto = PhysicalOb
     inferredPhysicalStates = inferredPhysicalStates,
     environmentalUncertainties = environmentalUncertainties,
     cvMetrics = cvMetrics?.toDto(),
+    acousticMetrics = acousticMetrics?.toDto(),
     learnerStatedBelief = learnerStatedBelief,
     perceptionGapLevel = perceptionGapLevel.name,
     perceptionGapExplanation = perceptionGapExplanation

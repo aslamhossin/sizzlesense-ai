@@ -9,6 +9,7 @@ from typing import Optional
 
 import httpx
 
+from app.audio.sizzle_analyzer import AcousticSizzleAnalyzer
 from app.config import SETTINGS
 from app.engine.chef_knowledge import (
     CHEF_PRINCIPLES_REGISTRY,
@@ -20,6 +21,7 @@ from app.engine.gemini_client import GeminiStructuredClient
 from app.engine.learner_store import LearnerMemoryStore
 from app.schemas.domain import (
     AcousticSizzleSignature,
+    AcousticSpectralMetrics,
     BehavioralTransferStatus,
     CognitiveCoachingResponse,
     ComputerVisionMetrics,
@@ -84,6 +86,12 @@ class CognitiveCoachingPipeline:
             frames = [generate_synthetic_kitchen_frame_base64(default_regime)]
 
         cv_metrics = KitchenFrameAnalyzer.analyze_frame_sequence(frames)
+        acoustic_metrics: Optional[AcousticSpectralMetrics] = None
+        if request.audio_wav_base64 and request.audio_wav_base64.strip():
+            acoustic_metrics = AcousticSizzleAnalyzer.analyze_wav_base64(
+                request.audio_wav_base64
+            )
+
         prior_session = self.memory_store.get_previous_attempt(
             request.learner_id, request.dish_id, request.attempt_number
         )
@@ -94,6 +102,7 @@ class CognitiveCoachingPipeline:
                 live_response = await self._call_live_gemini_pipeline(
                     request=request,
                     cv_metrics=cv_metrics,
+                    acoustic_metrics=acoustic_metrics,
                     prior_session=prior_session,
                     api_key=api_key,
                 )
@@ -107,6 +116,7 @@ class CognitiveCoachingPipeline:
             request=request,
             cv_metrics=cv_metrics,
             prior_session=prior_session,
+            acoustic_metrics=acoustic_metrics,
         )
         self.memory_store.save_session(request.learner_id, response)
         return response
@@ -163,6 +173,7 @@ class CognitiveCoachingPipeline:
         request: SessionAnalyzeRequest,
         cv_metrics: ComputerVisionMetrics,
         prior_session: Optional[CognitiveCoachingResponse],
+        acoustic_metrics: Optional[AcousticSpectralMetrics] = None,
     ) -> CognitiveCoachingResponse:
         archetype_id = self._infer_archetype_id(request, cv_metrics)
         archetype = ONION_LEARNER_ARCHETYPES[archetype_id]
@@ -171,6 +182,7 @@ class CognitiveCoachingPipeline:
             request=request,
             cv_metrics=cv_metrics,
             archetype_id=archetype_id,
+            acoustic_metrics=acoustic_metrics,
         )
         stage2 = self._build_stage2_learner_state(
             request=request,
@@ -195,13 +207,19 @@ class CognitiveCoachingPipeline:
             stage4=stage4,
         )
 
+        vision_tag = (
+            f"{request.preferred_vision_model} + CV-Pixel + Audio-FFT"
+            if acoustic_metrics is not None
+            else f"{request.preferred_vision_model} + CV-Pixel-Analyzer"
+        )
+
         return CognitiveCoachingResponse(
             session_id=f"sess_{uuid.uuid4().hex[:8]}",
             learner_id=request.learner_id,
             dish_id=request.dish_id,
             attempt_number=request.attempt_number,
             reasoning_model_used=f"{request.preferred_reasoning_model} (Deterministic-Verified)",
-            vision_model_used=f"{request.preferred_vision_model} + CV-Pixel-Analyzer",
+            vision_model_used=vision_tag,
             five_core_questions=five_questions,
             stage1_physical_observation=stage1,
             stage2_learner_state=stage2,
@@ -214,6 +232,7 @@ class CognitiveCoachingPipeline:
         request: SessionAnalyzeRequest,
         cv_metrics: ComputerVisionMetrics,
         archetype_id: str,
+        acoustic_metrics: Optional[AcousticSpectralMetrics] = None,
     ) -> tuple[PhysicalObservationReport, str, list[str]]:
         """SRP Stage 1:Separates observed visual/acoustic facts from inferred physical pan states."""
         if cv_metrics.dominant_visual_regime == "PALE_STEAMING_OR_RAW":
@@ -290,6 +309,15 @@ class CognitiveCoachingPipeline:
                 "Learner's observation of the pan state aligns with visual and acoustic evidence."
             )
 
+        if acoustic_metrics is not None:
+            acoustic = acoustic_metrics.inferred_acoustic_signature
+            inferred_states.append(
+                f"Acoustic FFT measured {acoustic.value} "
+                f"(centroid {acoustic_metrics.spectral_centroid_hz:.0f} Hz, "
+                f"sizzle ratio {acoustic_metrics.high_freq_sizzle_ratio:.2f}, "
+                f"RMS {acoustic_metrics.rms_energy_db:.1f} dBFS)."
+            )
+
         report = PhysicalObservationReport(
             observed_timeline_facts=[
                 TimelineFact(
@@ -303,6 +331,7 @@ class CognitiveCoachingPipeline:
                 "Exact stove BTU output and pan alloy thickness are inferred from thermal recovery rate."
             ],
             cv_metrics=cv_metrics,
+            acoustic_metrics=acoustic_metrics,
             learner_stated_belief=request.learner_reflection,
             perception_gap_level=gap_level,
             perception_gap_explanation=gap_explanation,
@@ -472,12 +501,16 @@ class CognitiveCoachingPipeline:
         cv_metrics: ComputerVisionMetrics,
         prior_session: Optional[CognitiveCoachingResponse],
         api_key: str,
+        acoustic_metrics: Optional[AcousticSpectralMetrics] = None,
     ) -> CognitiveCoachingResponse:
-        """Calls Google Gemini API with the live camera frame and structured JSON schema enforcement."""
-        baseline = self._run_deterministic_pipeline(request, cv_metrics, prior_session)
+        """Calls Google Gemini API with the live camera frame, optional WAV audio, and structured JSON schema enforcement."""
+        baseline = self._run_deterministic_pipeline(
+            request, cv_metrics, prior_session, acoustic_metrics=acoustic_metrics
+        )
         return await GeminiStructuredClient.generate_structured_coaching(
             request=request,
             cv_metrics=cv_metrics,
             baseline=baseline,
             api_key=api_key,
+            acoustic_metrics=acoustic_metrics,
         )
