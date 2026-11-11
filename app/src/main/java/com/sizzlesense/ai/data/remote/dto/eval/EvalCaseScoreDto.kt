@@ -37,3 +37,15 @@ fun EvalCaseScoreDto.toDomain(): EvalCaseScore = EvalCaseScore(
     transferTrackingPassed = transferTrackingPassed,
     summaryNote = summaryNote
 )
+
+fun EvalCaseScore.toDto(): EvalCaseScoreDto = EvalCaseScoreDto(
+    caseId = caseId,
+    archetypeId = archetypeId,
+    attemptNumber = attemptNumber,
+    perceptionGapPassed = perceptionGapPassed,
+    rootCausePassed = rootCausePassed,
+    singleIssueRestraintPassed = singleIssueRestraintPassed,
+    sensoryGroundingScore = sensoryGroundingScore,
+    transferTrackingPassed = transferTrackingPassed,
+    summaryNote = summaryNote
+)

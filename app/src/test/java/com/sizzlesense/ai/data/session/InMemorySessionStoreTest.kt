@@ -1,5 +1,7 @@
 package com.sizzlesense.ai.data.session
 
+import com.sizzlesense.ai.di.module.NetworkModule
+import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import com.sizzlesense.ai.domain.model.coaching.AcousticSizzleSignature
 import com.sizzlesense.ai.domain.model.coaching.BehavioralTransferStatus
 import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
@@ -15,6 +17,7 @@ import com.sizzlesense.ai.domain.model.coaching.SensoryCoachingOutput
 import com.sizzlesense.ai.domain.model.coaching.TimelineFact
 import com.sizzlesense.ai.presentation.navigation.SizzleDestination
 import com.sizzlesense.ai.presentation.navigation.SizzleRoute
+import java.nio.file.Files
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -103,6 +106,35 @@ class InMemorySessionStoreTest {
         val current = store.sessionState.value
         assertEquals(dummyResponse, current.latestCoachingResponse)
         assertEquals(dummyResponse, current.attemptHistory[1])
+
+        // Verify disk persistence across separate store instances
+        val tempFile = Files.createTempFile("sizzlesense_test_", ".json").toFile()
+        try {
+            val persistence = SessionPersistenceDataSource(
+                storageFile = tempFile,
+                json = NetworkModule.provideJson()
+            )
+            val writerStore = InMemorySessionStore(persistence)
+            writerStore.updateBackendUrl("http://192.168.11.6:8000")
+            writerStore.updateTapoConfig(
+                TapoCameraConfig(
+                    ipAddress = "192.168.11.16",
+                    username = "chef_tapo",
+                    useSubStream = true
+                )
+            )
+            writerStore.recordCoachingResponse(dummyResponse)
+
+            val restoredStore = InMemorySessionStore(persistence)
+            val restored = restoredStore.sessionState.value
+            assertEquals("http://192.168.11.6:8000", restored.backendBaseUrl)
+            assertEquals("chef_tapo", restored.tapoConfig.username)
+            assertTrue(restored.tapoConfig.useSubStream)
+            assertEquals(dummyResponse, restored.latestCoachingResponse)
+            assertEquals(dummyResponse, restored.attemptHistory[1])
+        } finally {
+            tempFile.delete()
+        }
     }
 
     @Test

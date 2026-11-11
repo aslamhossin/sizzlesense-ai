@@ -14,24 +14,32 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
 @Singleton
-class InMemorySessionStore @Inject constructor() : SessionStore {
+class InMemorySessionStore : SessionStore {
+
+    private val persistence: SessionPersistenceDataSource?
+
+    @Inject
+    constructor(persistence: SessionPersistenceDataSource) {
+        this.persistence = persistence
+        val initial = persistence.loadSnapshot() ?: defaultSnapshot()
+        this.sessionState.value = initial
+    }
+
+    constructor() {
+        this.persistence = null
+    }
 
     override val sessionState: StateFlow<SessionSnapshot>
-        field = MutableStateFlow(
-            SessionSnapshot(
-                backendBaseUrl = BuildConfig.DEFAULT_BACKEND_URL,
-                tapoConfig = TapoCameraConfig(ipAddress = BuildConfig.DEFAULT_TAPO_IP)
-            )
-        )
+        field = MutableStateFlow(defaultSnapshot())
 
     override fun updateBackendUrl(url: String) {
-        sessionState.update { current ->
+        mutateAndPersist { current ->
             current.copy(backendBaseUrl = url.trim())
         }
     }
 
     override fun updateTapoConfig(config: TapoCameraConfig) {
-        sessionState.update { current ->
+        mutateAndPersist { current ->
             current.copy(tapoConfig = config)
         }
     }
@@ -49,7 +57,7 @@ class InMemorySessionStore @Inject constructor() : SessionStore {
     }
 
     override fun selectArchetype(archetype: LearnerArchetypeOption) {
-        sessionState.update { current ->
+        mutateAndPersist { current ->
             val presetText = archetype
                 .presetReflections[current.currentAttemptNumber]
                 .orEmpty()
@@ -64,7 +72,7 @@ class InMemorySessionStore @Inject constructor() : SessionStore {
 
     override fun selectAttemptNumber(attemptNumber: Int) {
         val clamped = attemptNumber.coerceIn(1, 3)
-        sessionState.update { current ->
+        mutateAndPersist { current ->
             val presetText = current.selectedArchetype
                 .presetReflections[clamped]
                 .orEmpty()
@@ -79,13 +87,13 @@ class InMemorySessionStore @Inject constructor() : SessionStore {
     }
 
     override fun updateReflectionText(text: String) {
-        sessionState.update { current ->
+        mutateAndPersist { current ->
             current.copy(learnerReflectionText = text)
         }
     }
 
     override fun recordCoachingResponse(response: CognitiveCoachingResponse) {
-        sessionState.update { current ->
+        mutateAndPersist { current ->
             val updatedHistory = current.attemptHistory.toMutableMap().apply {
                 put(response.attemptNumber, response)
             }
@@ -97,8 +105,23 @@ class InMemorySessionStore @Inject constructor() : SessionStore {
     }
 
     override fun recordEvalSuiteReport(report: EvalSuiteReport) {
-        sessionState.update { current ->
+        mutateAndPersist { current ->
             current.copy(evalSuiteReport = report)
         }
+    }
+
+    private inline fun mutateAndPersist(transform: (SessionSnapshot) -> SessionSnapshot) {
+        sessionState.update { current ->
+            val updated = transform(current)
+            persistence?.saveSnapshot(updated)
+            updated
+        }
+    }
+
+    companion object {
+        private fun defaultSnapshot(): SessionSnapshot = SessionSnapshot(
+            backendBaseUrl = BuildConfig.DEFAULT_BACKEND_URL,
+            tapoConfig = TapoCameraConfig(ipAddress = BuildConfig.DEFAULT_TAPO_IP)
+        )
     }
 }

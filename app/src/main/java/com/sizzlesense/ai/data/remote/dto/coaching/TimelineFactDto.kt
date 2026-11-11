@@ -21,3 +21,9 @@ fun TimelineFactDto.toDomain(): TimelineFact = TimelineFact(
         AcousticSizzleSignature.valueOf(acousticSignature)
     }.getOrDefault(AcousticSizzleSignature.WET_STEAM_BUBBLE)
 )
+
+fun TimelineFact.toDto(): TimelineFactDto = TimelineFactDto(
+    timestamp = timestamp,
+    visualObservation = visualObservation,
+    acousticSignature = acousticSignature.name
+)

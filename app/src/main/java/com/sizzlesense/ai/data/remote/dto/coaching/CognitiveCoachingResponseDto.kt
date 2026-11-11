@@ -43,3 +43,17 @@ fun CognitiveCoachingResponseDto.toDomain(): CognitiveCoachingResponse = Cogniti
     stage3TeachingDecision = stage3TeachingDecision.toDomain(),
     stage4SensoryCoaching = stage4SensoryCoaching.toDomain()
 )
+
+fun CognitiveCoachingResponse.toDto(): CognitiveCoachingResponseDto = CognitiveCoachingResponseDto(
+    sessionId = sessionId,
+    learnerId = learnerId,
+    dishId = dishId,
+    attemptNumber = attemptNumber,
+    reasoningModelUsed = reasoningModelUsed,
+    visionModelUsed = visionModelUsed,
+    fiveCoreQuestions = fiveCoreQuestions.toDto(),
+    stage1PhysicalObservation = stage1PhysicalObservation.toDto(),
+    stage2LearnerState = stage2LearnerState.toDto(),
+    stage3TeachingDecision = stage3TeachingDecision.toDto(),
+    stage4SensoryCoaching = stage4SensoryCoaching.toDto()
+)

@@ -41,6 +41,16 @@ async def get_learner_history(
     return LearnerHistoryResponse(learner_id=learner_id, sessions=sessions)
 
 
+@router.delete("/learners/{learner_id}/history")
+async def delete_learner_history(
+    learner_id: str,
+    memory_store: LearnerMemoryStore = Depends(get_memory_store),
+) -> dict[str, str | int]:
+    """Deletes persisted SQLite session history for a learner."""
+    deleted_count = memory_store.delete_learner_history(learner_id)
+    return {"learner_id": learner_id, "deleted_sessions": deleted_count}
+
+
 @router.get(
     "/archetypes/compare-onion-learners",
     response_model=ArchetypeComparisonResponse,

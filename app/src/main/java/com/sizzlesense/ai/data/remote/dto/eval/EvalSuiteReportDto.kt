@@ -34,3 +34,14 @@ fun EvalSuiteReportDto.toDomain(): EvalSuiteReport = EvalSuiteReport(
     overallHumanLearningScore = overallHumanLearningScore,
     caseResults = caseResults.map { it.toDomain() }
 )
+
+fun EvalSuiteReport.toDto(): EvalSuiteReportDto = EvalSuiteReportDto(
+    totalSessionsEvaluated = totalSessionsEvaluated,
+    perceptionGapDetectionScore = perceptionGapDetectionScore,
+    latentRootCauseAccuracy = latentRootCauseAccuracy,
+    singleIssueRestraintScore = singleIssueRestraintScore,
+    sensoryGroundingScore = sensoryGroundingScore,
+    crossAttemptTransferScore = crossAttemptTransferScore,
+    overallHumanLearningScore = overallHumanLearningScore,
+    caseResults = caseResults.map { it.toDto() }
+)

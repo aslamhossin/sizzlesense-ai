@@ -30,6 +30,9 @@ class AiEngineConfig(BaseModel):
     default_reasoning_model: str = "gemini-3-flash-preview"
     default_vision_model: str = "gemini-3-flash-preview"
     gemini_api_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    sqlite_db_path: str = str(
+        Path(__file__).resolve().parent.parent / "data" / "sizzlesense_learners.db"
+    )
 
     @property
     def env_api_key(self) -> str | None:

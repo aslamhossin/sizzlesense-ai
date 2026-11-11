@@ -25,3 +25,11 @@ fun FiveCoreQuestionsSummaryDto.toDomain(): FiveCoreQuestionsSummary = FiveCoreQ
     whatSingleThingToTeachNow = whatSingleThingToTeachNow,
     howToCommunicateToShiftJudgment = howToCommunicateToShiftJudgment
 )
+
+fun FiveCoreQuestionsSummary.toDto(): FiveCoreQuestionsSummaryDto = FiveCoreQuestionsSummaryDto(
+    whatIsHappeningNow = whatIsHappeningNow,
+    whatTheyUnderstandVsNot = whatTheyUnderstandVsNot,
+    whyTheyMadeThatDecision = whyTheyMadeThatDecision,
+    whatSingleThingToTeachNow = whatSingleThingToTeachNow,
+    howToCommunicateToShiftJudgment = howToCommunicateToShiftJudgment
+)

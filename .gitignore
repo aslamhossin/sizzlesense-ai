@@ -29,3 +29,7 @@ captures/
 .DS_Store
 Thumbs.db
 docs/screenshots/
+*.db
+*.db-wal
+*.db-shm
+ai-backend/data/

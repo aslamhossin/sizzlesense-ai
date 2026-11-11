@@ -25,3 +25,11 @@ fun ComputerVisionMetricsDto.toDomain(): ComputerVisionMetrics = ComputerVisionM
     meanLuminance = meanLuminance,
     dominantVisualRegime = dominantVisualRegime
 )
+
+fun ComputerVisionMetrics.toDto(): ComputerVisionMetricsDto = ComputerVisionMetricsDto(
+    maillardBrowningRatio = maillardBrowningRatio,
+    surfaceMoistureIndex = surfaceMoistureIndex,
+    charBurnRatio = charBurnRatio,
+    meanLuminance = meanLuminance,
+    dominantVisualRegime = dominantVisualRegime
+)

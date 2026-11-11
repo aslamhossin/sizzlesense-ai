@@ -5,6 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from fastapi import Depends
 
+from app.config import SETTINGS
 from app.engine.cognitive_pipeline import CognitiveCoachingPipeline
 from app.engine.learner_store import LearnerMemoryStore
 from app.evals.human_learning_eval import HumanLearningEvalRunner
@@ -12,8 +13,8 @@ from app.evals.human_learning_eval import HumanLearningEvalRunner
 
 @lru_cache(maxsize=1)
 def get_memory_store() -> LearnerMemoryStore:
-    """Provides the shared longitudinal learner session store singleton."""
-    return LearnerMemoryStore()
+    """Provides the shared SQLite-backed longitudinal learner session store singleton."""
+    return LearnerMemoryStore(db_path=SETTINGS.sqlite_db_path)
 
 
 def get_cognitive_pipeline(

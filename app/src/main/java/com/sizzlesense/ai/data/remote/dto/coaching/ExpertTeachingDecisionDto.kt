@@ -25,3 +25,11 @@ fun ExpertTeachingDecisionDto.toDomain(): ExpertTeachingDecision = ExpertTeachin
     deliberatelyOmittedIssues = deliberatelyOmittedIssues.map { it.toDomain() },
     targetChefPrincipleId = targetChefPrincipleId
 )
+
+fun ExpertTeachingDecision.toDto(): ExpertTeachingDecisionDto = ExpertTeachingDecisionDto(
+    candidateIssuesDetected = candidateIssuesDetected,
+    selectedPrimaryIssue = selectedPrimaryIssue,
+    causalPriorityRationale = causalPriorityRationale,
+    deliberatelyOmittedIssues = deliberatelyOmittedIssues.map { it.toDto() },
+    targetChefPrincipleId = targetChefPrincipleId
+)

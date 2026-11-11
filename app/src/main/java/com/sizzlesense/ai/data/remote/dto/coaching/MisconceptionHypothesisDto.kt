@@ -17,3 +17,9 @@ fun MisconceptionHypothesisDto.toDomain(): MisconceptionHypothesis = Misconcepti
     description = description,
     confidence = confidence
 )
+
+fun MisconceptionHypothesis.toDto(): MisconceptionHypothesisDto = MisconceptionHypothesisDto(
+    conceptId = conceptId,
+    description = description,
+    confidence = confidence
+)

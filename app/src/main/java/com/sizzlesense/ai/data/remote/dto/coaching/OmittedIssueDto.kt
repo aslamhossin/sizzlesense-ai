@@ -15,3 +15,8 @@ fun OmittedIssueDto.toDomain(): OmittedIssue = OmittedIssue(
     issue = issue,
     suppressionReason = suppressionReason
 )
+
+fun OmittedIssue.toDto(): OmittedIssueDto = OmittedIssueDto(
+    issue = issue,
+    suppressionReason = suppressionReason
+)

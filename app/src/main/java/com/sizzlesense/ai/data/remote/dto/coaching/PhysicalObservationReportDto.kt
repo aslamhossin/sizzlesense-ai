@@ -34,3 +34,13 @@ fun PhysicalObservationReportDto.toDomain(): PhysicalObservationReport = Physica
     }.getOrDefault(PerceptionGapLevel.ALIGNED),
     perceptionGapExplanation = perceptionGapExplanation
 )
+
+fun PhysicalObservationReport.toDto(): PhysicalObservationReportDto = PhysicalObservationReportDto(
+    observedTimelineFacts = observedTimelineFacts.map { it.toDto() },
+    inferredPhysicalStates = inferredPhysicalStates,
+    environmentalUncertainties = environmentalUncertainties,
+    cvMetrics = cvMetrics?.toDto(),
+    learnerStatedBelief = learnerStatedBelief,
+    perceptionGapLevel = perceptionGapLevel.name,
+    perceptionGapExplanation = perceptionGapExplanation
+)

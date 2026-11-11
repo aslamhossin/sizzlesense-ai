@@ -34,3 +34,13 @@ fun LearnerStateEstimateDto.toDomain(): LearnerStateEstimate = LearnerStateEstim
     conceptualShiftVerified = conceptualShiftVerified,
     longitudinalDeltaSummary = longitudinalDeltaSummary
 )
+
+fun LearnerStateEstimate.toDto(): LearnerStateEstimateDto = LearnerStateEstimateDto(
+    learnerArchetypeId = learnerArchetypeId,
+    demonstratedUnderstandings = demonstratedUnderstandings,
+    latentMisconceptions = latentMisconceptions.map { it.toDto() },
+    decisionRootCause = decisionRootCause,
+    transferStatus = transferStatus.name,
+    conceptualShiftVerified = conceptualShiftVerified,
+    longitudinalDeltaSummary = longitudinalDeltaSummary
+)

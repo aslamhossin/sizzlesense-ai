@@ -25,3 +25,11 @@ fun SensoryCoachingOutputDto.toDomain(): SensoryCoachingOutput = SensoryCoaching
     coachingMessage = coachingMessage,
     nextAttemptMicroExperiment = nextAttemptMicroExperiment
 )
+
+fun SensoryCoachingOutput.toDto(): SensoryCoachingOutputDto = SensoryCoachingOutputDto(
+    visualCueToObserve = visualCueToObserve,
+    auditoryCueToListen = auditoryCueToListen,
+    olfactoryOrTactileCue = olfactoryOrTactileCue,
+    coachingMessage = coachingMessage,
+    nextAttemptMicroExperiment = nextAttemptMicroExperiment
+)
