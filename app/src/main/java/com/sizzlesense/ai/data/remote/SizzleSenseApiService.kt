@@ -1,12 +1,15 @@
 package com.sizzlesense.ai.data.remote
 
+import com.sizzlesense.ai.data.remote.dto.camera.CameraDiscoveryResponseDto
 import com.sizzlesense.ai.data.remote.dto.coaching.CognitiveCoachingResponseDto
 import com.sizzlesense.ai.data.remote.dto.eval.EvalSuiteReportDto
 import com.sizzlesense.ai.data.remote.dto.request.SessionAnalyzeRequestDto
 import com.sizzlesense.ai.data.remote.dto.request.TapoLiveAnalyzeRequestDto
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 /**
  * Declarative Retrofit API contract for the SizzleSense AI FastAPI backend (`/api/v1/`).
@@ -15,6 +18,12 @@ import retrofit2.http.POST
  * and supports per-call LAN/emulator base URL failover via [HEADER_TARGET_BASE_URL].
  */
 interface SizzleSenseApiService {
+
+    @GET("api/v1/camera/discover")
+    suspend fun discoverCameraAndServer(
+        @Header(HEADER_TARGET_BASE_URL) targetBaseUrl: String,
+        @Query("preferred_ip") preferredIp: String? = null
+    ): CameraDiscoveryResponseDto
 
     @POST("api/v1/sessions/analyze")
     suspend fun analyzeSession(
@@ -36,6 +45,6 @@ interface SizzleSenseApiService {
 
     companion object {
         const val HEADER_TARGET_BASE_URL = "X-Sizzle-Target-Base-Url"
-        const val DEFAULT_BASE_URL = "http://192.168.11.6:8000/"
+        const val DEFAULT_BASE_URL = "http://10.0.2.2:8000/"
     }
 }

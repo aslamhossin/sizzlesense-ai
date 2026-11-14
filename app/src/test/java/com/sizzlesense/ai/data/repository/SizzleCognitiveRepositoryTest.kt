@@ -1,5 +1,6 @@
 package com.sizzlesense.ai.data.repository
 
+import com.sizzlesense.ai.BuildConfig
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
@@ -208,16 +209,66 @@ class SizzleCognitiveRepositoryTest {
 
             repository.runEvaluationBenchmark("http://192.168.11.99:8000")
 
+            val expectedWorkstationHost = BuildConfig.DEFAULT_LAN_BACKEND_URL
+                .trim()
+                .trimEnd('/')
+                .ifBlank { FailoverJsonHttpClient.MAC_WORKSTATION_LAN_URL }
+                .removePrefix("http://")
+
             assertNull(leakedInternalHeader)
             assertEquals(
                 listOf(
                     "192.168.11.99:8000/api/v1/evals/run",
                     "10.0.2.2:8000/api/v1/evals/run",
-                    "192.168.11.6:8000/api/v1/evals/run",
+                    "$expectedWorkstationHost/api/v1/evals/run",
                     "127.0.0.1:8000/api/v1/evals/run"
                 ),
                 visitedHosts
             )
+        }
+    }
+
+    @Test
+    fun discoverCameraAndServer_resolvesWorkingFailoverUrlAndMapsCameraIp() {
+        runTest {
+            val repository = buildRepositoryWithInterceptor { chain ->
+                val req = chain.request()
+                if (req.url.host == "192.168.11.99") {
+                    throw IOException("Old server IP offline")
+                }
+                assertEquals("192.168.11.16", req.url.queryParameter("preferred_ip"))
+                Response.Builder()
+                    .request(req)
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body(
+                        """
+                        {
+                          "backend_url": "http://192.168.11.7:8000",
+                          "camera_ip": "192.168.11.14",
+                          "camera_port": 554,
+                          "camera_reachable": true,
+                          "has_backend_credentials": true,
+                          "discovery_source": "lan_scan"
+                        }
+                        """.trimIndent().toResponseBody("application/json".toMediaType())
+                    )
+                    .build()
+            }
+
+            val result = repository.discoverCameraAndServer(
+                baseUrl = "http://192.168.11.99:8000",
+                preferredCameraIp = "192.168.11.16"
+            )
+
+            assertTrue(result is AppResult.Success)
+            val info = (result as AppResult.Success).data
+            assertEquals("http://10.0.2.2:8000", info.resolvedBackendUrl)
+            assertEquals("http://192.168.11.7:8000", info.advertisedBackendUrl)
+            assertEquals("192.168.11.14", info.cameraIp)
+            assertTrue(info.cameraReachable)
+            assertEquals("lan_scan", info.discoverySource)
         }
     }
 }

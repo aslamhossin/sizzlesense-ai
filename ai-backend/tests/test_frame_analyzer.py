@@ -7,6 +7,7 @@ from PIL import Image
 
 from app.vision.frame_analyzer import (
     KitchenFrameAnalyzer,
+    TapoLanDiscovery,
     TapoRtspUrlBuilder,
     generate_synthetic_kitchen_frame_base64,
 )
@@ -69,3 +70,25 @@ def test_cv_analyzer_detects_scorched_carbonized_regime():
 
     assert metrics.char_burn_ratio > 0.40
     assert metrics.dominant_visual_regime == "SCORCHED_CARBONIZED"
+
+
+async def test_tapo_lan_discovery_falls_back_from_stale_ip_to_subnet_scan(monkeypatch):
+    """When configured IP is unreachable, discovery scans the LAN subnet for RTSP + ONVIF hosts."""
+
+    async def fake_port_open(host: str, port: int, timeout_sec: float = 0.35) -> bool:
+        if host == "192.168.11.14" and port in (554, 2020):
+            return True
+        if host == "192.168.11.99" and port == 554:
+            return True
+        return False
+
+    monkeypatch.setattr(TapoLanDiscovery, "is_tcp_port_open", staticmethod(fake_port_open))
+
+    ip, reachable, source = await TapoLanDiscovery.discover_tapo_camera(
+        preferred_ip="192.168.11.16",
+        configured_ip="192.168.11.16",
+        lan_ip="192.168.11.7",
+    )
+    assert reachable is True
+    assert ip == "192.168.11.14"
+    assert source == "lan_scan"

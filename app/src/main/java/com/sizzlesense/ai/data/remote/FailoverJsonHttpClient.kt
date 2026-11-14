@@ -1,9 +1,12 @@
 package com.sizzlesense.ai.data.remote
 
+import com.sizzlesense.ai.BuildConfig
 import com.sizzlesense.ai.core.network.safeApiCall
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppException
 import com.sizzlesense.ai.core.result.AppResult
+import com.sizzlesense.ai.core.result.map
+import com.sizzlesense.ai.data.remote.dto.camera.CameraDiscoveryResponseDto
 import com.sizzlesense.ai.data.remote.dto.coaching.CognitiveCoachingResponseDto
 import com.sizzlesense.ai.data.remote.dto.eval.EvalSuiteReportDto
 import com.sizzlesense.ai.data.remote.dto.request.SessionAnalyzeRequestDto
@@ -16,6 +19,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
 
+data class ResolvedRemoteResult<out T>(
+    val data: T,
+    val resolvedBaseUrl: String
+)
+
 /**
  * Executes declarative Retrofit [SizzleSenseApiService] calls across candidate LAN/emulator endpoints,
  * preserving structured [AppError] classification (`HttpError`, `SerializationError`, `NetworkUnavailable`).
@@ -27,13 +35,28 @@ class FailoverJsonHttpClient @Inject constructor(
 ) {
 
     fun resolveCandidateEndpoints(primaryBaseUrl: String): List<String> {
+        val workstationLanUrl = BuildConfig.DEFAULT_LAN_BACKEND_URL
+            .trim()
+            .trimEnd('/')
+            .ifBlank { MAC_WORKSTATION_LAN_URL }
         return listOf(
             primaryBaseUrl.trim().trimEnd('/'),
             EMULATOR_HOST_URL,
-            MAC_WORKSTATION_LAN_URL,
+            workstationLanUrl,
             LOCALHOST_URL
         ).filter { it.isNotBlank() }.distinct()
     }
+
+    suspend fun discoverCameraAndServerWithFailover(
+        primaryBaseUrl: String,
+        preferredIp: String
+    ): AppResult<ResolvedRemoteResult<CameraDiscoveryResponseDto>> =
+        executeWithFailoverAndResolvedUrl(primaryBaseUrl) { targetUrl ->
+            apiService.discoverCameraAndServer(
+                targetBaseUrl = targetUrl,
+                preferredIp = preferredIp.trim().ifBlank { null }
+            )
+        }
 
     suspend fun analyzeSessionWithFailover(
         primaryBaseUrl: String,
@@ -64,13 +87,25 @@ class FailoverJsonHttpClient @Inject constructor(
     suspend fun <RES : Any> executeWithFailover(
         primaryBaseUrl: String,
         call: suspend (targetBaseUrl: String) -> RES
-    ): AppResult<RES> = safeApiCall(ioDispatcher) {
+    ): AppResult<RES> = executeWithFailoverAndResolvedUrl(
+        primaryBaseUrl = primaryBaseUrl,
+        call = call
+    ).map { it.data }
+
+    suspend fun <RES : Any> executeWithFailoverAndResolvedUrl(
+        primaryBaseUrl: String,
+        call: suspend (targetBaseUrl: String) -> RES
+    ): AppResult<ResolvedRemoteResult<RES>> = safeApiCall(ioDispatcher) {
         val candidates = resolveCandidateEndpoints(primaryBaseUrl)
         var lastError: AppError = AppError.NetworkUnavailable("No candidate endpoints configured")
 
         for (rootUrl in candidates) {
             try {
-                return@safeApiCall call(rootUrl)
+                val data = call(rootUrl)
+                return@safeApiCall ResolvedRemoteResult(
+                    data = data,
+                    resolvedBaseUrl = rootUrl
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: SerializationException) {

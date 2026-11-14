@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import io
+import ipaddress
+import socket
 from typing import List
 from urllib.parse import quote
 
@@ -11,6 +14,109 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from app.schemas.domain import ComputerVisionMetrics
+
+
+class TapoLanDiscovery:
+    """Discovers the workstation's active LAN IP and reachable Tapo RTSP cameras."""
+
+    RTSP_PORT = 554
+    ONVIF_PORT = 2020
+    _SCAN_CONCURRENCY = 64
+
+    @staticmethod
+    def detect_local_lan_ip() -> str:
+        """Resolves the active outbound IPv4 address without sending network traffic."""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            sock.connect(("1.1.1.1", 80))
+            ip = sock.getsockname()[0]
+            if ip and not ip.startswith("127."):
+                return ip
+        except OSError:
+            pass
+        finally:
+            sock.close()
+        return "127.0.0.1"
+
+    @staticmethod
+    async def is_tcp_port_open(host: str, port: int, timeout_sec: float = 0.35) -> bool:
+        """Probes whether a host accepts TCP connections on `port` within `timeout_sec`."""
+        try:
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port),
+                timeout=timeout_sec,
+            )
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except Exception:
+                pass
+            return True
+        except Exception:
+            return False
+
+    @classmethod
+    async def scan_subnet_for_rtsp(
+        cls,
+        lan_ip: str,
+        port: int = RTSP_PORT,
+        timeout_sec: float = 0.35,
+    ) -> str | None:
+        """Scans the local private `/24` subnet for an RTSP server (preferring Tapo ONVIF hosts)."""
+        try:
+            addr = ipaddress.IPv4Address(lan_ip)
+            network = ipaddress.IPv4Network(f"{lan_ip}/24", strict=False)
+        except ValueError:
+            return None
+
+        if addr.is_loopback or not addr.is_private:
+            return None
+
+        semaphore = asyncio.Semaphore(cls._SCAN_CONCURRENCY)
+
+        async def _probe(candidate: str) -> str | None:
+            async with semaphore:
+                if await cls.is_tcp_port_open(candidate, port, timeout_sec=timeout_sec):
+                    return candidate
+                return None
+
+        hosts = [str(host) for host in network.hosts() if str(host) != lan_ip]
+        results = await asyncio.gather(*(_probe(ip) for ip in hosts))
+        open_rtsp_hosts = [ip for ip in results if ip is not None]
+        if not open_rtsp_hosts:
+            return None
+
+        for ip in open_rtsp_hosts:
+            if await cls.is_tcp_port_open(ip, cls.ONVIF_PORT, timeout_sec=timeout_sec):
+                return ip
+        return open_rtsp_hosts[0]
+
+    @classmethod
+    async def discover_tapo_camera(
+        cls,
+        preferred_ip: str | None = None,
+        configured_ip: str | None = None,
+        lan_ip: str | None = None,
+        port: int = RTSP_PORT,
+    ) -> tuple[str | None, bool, str]:
+        """Resolves a reachable Tapo camera IP, falling back from preferred -> env -> LAN scan."""
+        direct_candidates: list[tuple[str, str]] = []
+        for raw_ip, source in ((preferred_ip, "preferred"), (configured_ip, "env_config")):
+            cleaned = (raw_ip or "").strip()
+            if cleaned and all(existing != cleaned for existing, _ in direct_candidates):
+                direct_candidates.append((cleaned, source))
+
+        for candidate_ip, source in direct_candidates:
+            if await cls.is_tcp_port_open(candidate_ip, port, timeout_sec=0.35):
+                return candidate_ip, True, source
+
+        active_lan_ip = lan_ip or cls.detect_local_lan_ip()
+        scanned_ip = await cls.scan_subnet_for_rtsp(active_lan_ip, port=port)
+        if scanned_ip:
+            return scanned_ip, True, "lan_scan"
+
+        fallback_ip = direct_candidates[0][0] if direct_candidates else None
+        return fallback_ip, False, "unavailable"
 
 
 class TapoRtspUrlBuilder:

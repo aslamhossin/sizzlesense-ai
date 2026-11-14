@@ -153,8 +153,13 @@ fun TapoRtspPlayerView(
                         tint = SizzleTheme.colors.textSecondary,
                         modifier = Modifier.size(SizzleTheme.spacing.iconMedium)
                     )
+                    val idlePrompt = if (config.ipAddress.isNotBlank() && config.username.isNotBlank()) {
+                        "Tap Start Camera to view live pan (${config.ipAddress})"
+                    } else {
+                        "Tap Auto-Detect in Setup below to load camera settings"
+                    }
                     Text(
-                        text = "Configure credentials in Setup below to preview your pan",
+                        text = idlePrompt,
                         color = SizzleTheme.colors.textSecondary,
                         style = SizzleTheme.typography.bodySmall,
                         textAlign = TextAlign.Center

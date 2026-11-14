@@ -1,13 +1,16 @@
 package com.sizzlesense.ai.presentation.kitchen
 
+import com.sizzlesense.ai.BuildConfig
 import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.core.ui.BaseViewModel
 import com.sizzlesense.ai.core.ui.TaskStatus
+import com.sizzlesense.ai.domain.model.camera.CameraDiscoveryInfo
 import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.session.SessionSnapshot
 import com.sizzlesense.ai.domain.repository.SessionStore
 import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
+import com.sizzlesense.ai.domain.usecase.DiscoverCameraAndServerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,22 +18,37 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 
+private data class DiscoveryUiStatus(
+    val isDiscovering: Boolean = false,
+    val statusMessage: String? = null
+)
+
 @HiltViewModel
 class KitchenViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val analyzeCookingSession: AnalyzeCookingSessionUseCase,
-    private val captureLiveTapoSession: CaptureLiveTapoSessionUseCase
+    private val captureLiveTapoSession: CaptureLiveTapoSessionUseCase,
+    private val discoverCameraAndServer: DiscoverCameraAndServerUseCase
 ) : BaseViewModel<KitchenUiState, KitchenUiIntent, KitchenUiEffect>() {
 
     private val taskStatus = MutableStateFlow(TaskStatus())
+    private val discoveryStatus = MutableStateFlow(DiscoveryUiStatus())
+
+    init {
+        runAutoDiscovery(userInitiated = false)
+    }
 
     override val uiState: StateFlow<KitchenUiState> = combine(
         sessionStore.sessionState,
-        taskStatus
-    ) { session, status ->
-        session.toKitchenUiState(status)
+        taskStatus,
+        discoveryStatus
+    ) { session, status, discovery ->
+        session.toKitchenUiState(status, discovery)
     }.stateWhileSubscribed(
-        initialValue = sessionStore.sessionState.value.toKitchenUiState(taskStatus.value)
+        initialValue = sessionStore.sessionState.value.toKitchenUiState(
+            status = taskStatus.value,
+            discovery = discoveryStatus.value
+        )
     )
 
     override fun onIntent(intent: KitchenUiIntent) {
@@ -49,6 +67,10 @@ class KitchenViewModel @Inject constructor(
                         useSubStream = intent.useSubStream
                     )
                 )
+            }
+
+            KitchenUiIntent.AutoDetectSettings -> {
+                runAutoDiscovery(userInitiated = true)
             }
 
             is KitchenUiIntent.SetTapoStreamConnected -> {
@@ -85,6 +107,67 @@ class KitchenViewModel @Inject constructor(
             KitchenUiIntent.ClearError -> {
                 taskStatus.update { it.copy(errorMessage = null) }
             }
+        }
+    }
+
+    private fun runAutoDiscovery(userInitiated: Boolean) {
+        if (discoveryStatus.value.isDiscovering) return
+        val snapshot = sessionStore.sessionState.value
+        discoveryStatus.update {
+            it.copy(
+                isDiscovering = true,
+                statusMessage = if (userInitiated) "Detecting camera & server..." else it.statusMessage
+            )
+        }
+        if (userInitiated) {
+            taskStatus.update { it.copy(errorMessage = null) }
+        }
+
+        launchResultTask(
+            onSuccess = { info -> applyDiscoveryResult(info) },
+            onError = { appError ->
+                discoveryStatus.value = DiscoveryUiStatus(
+                    isDiscovering = false,
+                    statusMessage = if (userInitiated) "Server unreachable on local Wi-Fi" else null
+                )
+                if (userInitiated) {
+                    taskStatus.update { it.copy(errorMessage = appError.readableMessage) }
+                }
+            },
+            block = {
+                discoverCameraAndServer(
+                    baseUrl = snapshot.backendBaseUrl,
+                    preferredCameraIp = snapshot.tapoConfig.ipAddress
+                )
+            }
+        )
+    }
+
+    private fun applyDiscoveryResult(info: CameraDiscoveryInfo) {
+        val resolvedUrl = info.resolvedBackendUrl.ifBlank { info.advertisedBackendUrl }
+        if (resolvedUrl.isNotBlank()) {
+            sessionStore.updateBackendUrl(resolvedUrl)
+        }
+        val discoveredIp = info.cameraIp?.trim().orEmpty()
+        val currentTapo = sessionStore.sessionState.value.tapoConfig
+        if (discoveredIp.isNotBlank() && info.cameraReachable) {
+            sessionStore.updateTapoConfig(
+                currentTapo.copy(
+                    ipAddress = discoveredIp,
+                    port = info.cameraPort,
+                    username = currentTapo.username.ifBlank { BuildConfig.DEFAULT_TAPO_USERNAME },
+                    password = currentTapo.password.ifBlank { BuildConfig.DEFAULT_TAPO_PASSWORD }
+                )
+            )
+            discoveryStatus.value = DiscoveryUiStatus(
+                isDiscovering = false,
+                statusMessage = "Auto-synced • Camera $discoveredIp online"
+            )
+        } else {
+            discoveryStatus.value = DiscoveryUiStatus(
+                isDiscovering = false,
+                statusMessage = "Server ready • Camera offline on LAN"
+            )
         }
     }
 
@@ -132,7 +215,10 @@ class KitchenViewModel @Inject constructor(
         }
     }
 
-    private fun SessionSnapshot.toKitchenUiState(status: TaskStatus) = KitchenUiState(
+    private fun SessionSnapshot.toKitchenUiState(
+        status: TaskStatus,
+        discovery: DiscoveryUiStatus
+    ) = KitchenUiState(
         backendBaseUrl = backendBaseUrl,
         tapoConfig = tapoConfig,
         capturedFrameLabel = capturedFrameLabel,
@@ -142,6 +228,8 @@ class KitchenViewModel @Inject constructor(
         learnerReflectionText = learnerReflectionText,
         isAnalyzing = status.isRunning,
         activePipelineStageLabel = status.label,
+        isDiscoveringSettings = discovery.isDiscovering,
+        setupStatusMessage = discovery.statusMessage,
         errorMessage = status.errorMessage
     )
 }

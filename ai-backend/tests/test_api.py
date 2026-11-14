@@ -6,8 +6,9 @@ from app.api.dependencies import get_eval_runner, get_memory_store
 from app.engine.cognitive_pipeline import CognitiveCoachingPipeline
 from app.engine.gemini_client import GeminiStructuredClient
 from app.engine.learner_store import LearnerMemoryStore
-from app.schemas.domain import CognitiveCoachingResponse, SessionAnalyzeRequest
 from app.main import app
+from app.schemas.domain import CognitiveCoachingResponse, SessionAnalyzeRequest
+from app.vision.frame_analyzer import TapoLanDiscovery
 
 client = TestClient(app)
 
@@ -129,3 +130,24 @@ async def test_sqlite_learner_memory_store_persists_across_restarts(tmp_path):
     )
     assert attempt2.attempt_number == 2
     assert len(store_after_restart.get_history("persistent_chef", "sauteed_onions")) == 2
+
+
+def test_camera_discover_endpoint_returns_lan_backend_and_camera_without_exposing_secrets(
+    monkeypatch,
+):
+    monkeypatch.setattr(TapoLanDiscovery, "detect_local_lan_ip", staticmethod(lambda: "192.168.11.7"))
+
+    async def fake_discover(**kwargs):
+        return ("192.168.11.14", True, "lan_scan")
+
+    monkeypatch.setattr(TapoLanDiscovery, "discover_tapo_camera", fake_discover)
+
+    resp = client.get("/api/v1/camera/discover?preferred_ip=192.168.11.16")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["backend_url"] == "http://192.168.11.7:8000"
+    assert body["camera_ip"] == "192.168.11.14"
+    assert body["camera_reachable"] is True
+    assert body["discovery_source"] == "lan_scan"
+    assert "password" not in body
+    assert "username" not in body

@@ -2,6 +2,7 @@ package com.sizzlesense.ai.di.module
 
 import com.sizzlesense.ai.data.repository.SizzleCognitiveRepository
 import com.sizzlesense.ai.data.session.InMemorySessionStore
+import com.sizzlesense.ai.domain.repository.CameraDiscoveryGateway
 import com.sizzlesense.ai.domain.repository.EvaluationBenchmarkGateway
 import com.sizzlesense.ai.domain.repository.LiveTapoCameraGateway
 import com.sizzlesense.ai.domain.repository.SessionAnalysisGateway
@@ -36,6 +37,12 @@ abstract class DataModule {
     abstract fun bindEvaluationBenchmarkGateway(
         impl: SizzleCognitiveRepository
     ): EvaluationBenchmarkGateway
+
+    @Binds
+    @Singleton
+    abstract fun bindCameraDiscoveryGateway(
+        impl: SizzleCognitiveRepository
+    ): CameraDiscoveryGateway
 
     @Binds
     @Singleton

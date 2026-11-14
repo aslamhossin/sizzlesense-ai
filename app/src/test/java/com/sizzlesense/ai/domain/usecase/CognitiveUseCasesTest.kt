@@ -1,5 +1,6 @@
 package com.sizzlesense.ai.domain.usecase
 
+import com.sizzlesense.ai.BuildConfig
 import com.sizzlesense.ai.core.network.safeApiCall
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
@@ -118,13 +119,17 @@ class CognitiveUseCasesTest {
             ),
             ioDispatcher = UnconfinedTestDispatcher()
         )
-        val endpoints = client.resolveCandidateEndpoints("http://192.168.11.6:8000/")
+        val lanCandidate = BuildConfig.DEFAULT_LAN_BACKEND_URL
+            .trim()
+            .trimEnd('/')
+            .ifBlank { FailoverJsonHttpClient.MAC_WORKSTATION_LAN_URL }
+        val endpoints = client.resolveCandidateEndpoints("$lanCandidate/")
 
         assertEquals(
             listOf(
-                "http://192.168.11.6:8000",
-                "http://10.0.2.2:8000",
-                "http://127.0.0.1:8000"
+                lanCandidate,
+                FailoverJsonHttpClient.EMULATOR_HOST_URL,
+                FailoverJsonHttpClient.LOCALHOST_URL
             ),
             endpoints
         )

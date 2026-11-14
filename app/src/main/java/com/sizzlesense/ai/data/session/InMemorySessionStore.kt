@@ -133,7 +133,11 @@ class InMemorySessionStore : SessionStore {
     companion object {
         private fun defaultSnapshot(): SessionSnapshot = SessionSnapshot(
             backendBaseUrl = BuildConfig.DEFAULT_BACKEND_URL,
-            tapoConfig = TapoCameraConfig(ipAddress = BuildConfig.DEFAULT_TAPO_IP)
+            tapoConfig = TapoCameraConfig(
+                ipAddress = BuildConfig.DEFAULT_TAPO_IP,
+                username = BuildConfig.DEFAULT_TAPO_USERNAME,
+                password = BuildConfig.DEFAULT_TAPO_PASSWORD
+            )
         )
     }
 }

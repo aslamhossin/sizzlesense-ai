@@ -5,14 +5,17 @@ import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.core.result.map
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
+import com.sizzlesense.ai.data.remote.dto.camera.toDomain
 import com.sizzlesense.ai.data.remote.dto.coaching.toDomain
 import com.sizzlesense.ai.data.remote.dto.eval.toDomain
 import com.sizzlesense.ai.data.remote.dto.request.toDto
 import com.sizzlesense.ai.data.remote.dto.request.toLiveAnalyzeRequestDto
+import com.sizzlesense.ai.domain.model.camera.CameraDiscoveryInfo
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
 import com.sizzlesense.ai.domain.model.session.SessionAnalyzeRequest
+import com.sizzlesense.ai.domain.repository.CameraDiscoveryGateway
 import com.sizzlesense.ai.domain.repository.EvaluationBenchmarkGateway
 import com.sizzlesense.ai.domain.repository.LiveTapoCameraGateway
 import com.sizzlesense.ai.domain.repository.SessionAnalysisGateway
@@ -23,7 +26,10 @@ import javax.inject.Singleton
 class SizzleCognitiveRepository @Inject constructor(
     private val remoteClient: FailoverJsonHttpClient,
     private val localFallback: LocalFallbackCognitiveDataSource
-) : SessionAnalysisGateway, LiveTapoCameraGateway, EvaluationBenchmarkGateway {
+) : SessionAnalysisGateway,
+    LiveTapoCameraGateway,
+    EvaluationBenchmarkGateway,
+    CameraDiscoveryGateway {
 
     override suspend fun analyzeSession(
         baseUrl: String,
@@ -63,6 +69,18 @@ class SizzleCognitiveRepository @Inject constructor(
             request = requestDto
         ).map { dto ->
             dto.toDomain()
+        }
+    }
+
+    override suspend fun discoverCameraAndServer(
+        baseUrl: String,
+        preferredCameraIp: String
+    ): AppResult<CameraDiscoveryInfo> {
+        return remoteClient.discoverCameraAndServerWithFailover(
+            primaryBaseUrl = baseUrl,
+            preferredIp = preferredCameraIp
+        ).map { resolved ->
+            resolved.data.toDomain(resolvedBackendUrl = resolved.resolvedBaseUrl)
         }
     }
 

@@ -3,19 +3,53 @@
 from __future__ import annotations
 
 import base64
-from fastapi import APIRouter, Depends, HTTPException, Response
+import os
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.api.dependencies import get_cognitive_pipeline
+from app.config import _read_dotenv_value
 from app.engine.cognitive_pipeline import CognitiveCoachingPipeline
 from app.schemas.api_models import (
+    CameraDiscoveryResponse,
     TapoLiveAnalyzeRequest,
     TapoRtspRequest,
     TapoRtspResponse,
 )
 from app.schemas.domain import CognitiveCoachingResponse, SessionAnalyzeRequest
-from app.vision.frame_analyzer import TapoRtspUrlBuilder
+from app.vision.frame_analyzer import TapoLanDiscovery, TapoRtspUrlBuilder
 
 router = APIRouter(prefix="/camera", tags=["Tapo C100 RTSP Camera"])
+
+
+def _read_env_or_dotenv(key: str) -> str:
+    return (_read_dotenv_value(key) or os.environ.get(key) or "").strip()
+
+
+@router.get("/discover", response_model=CameraDiscoveryResponse)
+async def discover_camera_and_server(
+    preferred_ip: str | None = Query(default=None),
+) -> CameraDiscoveryResponse:
+    """Auto-discovers the active LAN backend URL and reachable Tapo RTSP camera IP."""
+    lan_ip = TapoLanDiscovery.detect_local_lan_ip()
+    configured_ip = _read_env_or_dotenv("TAPO_CAMERA_IP")
+    has_creds = bool(
+        _read_env_or_dotenv("TAPO_CAMERA_USERNAME")
+        and _read_env_or_dotenv("TAPO_CAMERA_PASSWORD")
+    )
+    camera_ip, reachable, source = await TapoLanDiscovery.discover_tapo_camera(
+        preferred_ip=preferred_ip,
+        configured_ip=configured_ip,
+        lan_ip=lan_ip,
+        port=TapoLanDiscovery.RTSP_PORT,
+    )
+    return CameraDiscoveryResponse(
+        backend_url=f"http://{lan_ip}:8000",
+        camera_ip=camera_ip,
+        camera_port=TapoLanDiscovery.RTSP_PORT,
+        camera_reachable=reachable,
+        has_backend_credentials=has_creds,
+        discovery_source=source,
+    )
 
 
 @router.post("/tapo-rtsp-url", response_model=TapoRtspResponse)
@@ -44,16 +78,23 @@ async def build_tapo_rtsp_url(req: TapoRtspRequest) -> TapoRtspResponse:
     responses={200: {"content": {"image/jpeg": {}}}},
 )
 async def get_tapo_live_snapshot(
-    username: str,
-    password: str,
-    ip_address: str = "192.168.11.16",
+    username: str | None = None,
+    password: str | None = None,
+    ip_address: str | None = None,
 ) -> Response:
-    """Captures and displays a live JPEG frame directly from the Tapo C100 camera (`192.168.11.16:554`) in Swagger UI."""
+    """Captures and displays a live JPEG frame directly from the Tapo C100 camera via RTSP."""
+    resolved_user = (username or "").strip() or _read_env_or_dotenv("TAPO_CAMERA_USERNAME")
+    resolved_pass = password or _read_env_or_dotenv("TAPO_CAMERA_PASSWORD")
+    resolved_ip, _, _ = await TapoLanDiscovery.discover_tapo_camera(
+        preferred_ip=ip_address,
+        configured_ip=_read_env_or_dotenv("TAPO_CAMERA_IP"),
+    )
+    target_ip = resolved_ip or (ip_address or "").strip() or TapoRtspUrlBuilder.DEFAULT_TAPO_IP
     try:
         live_b64 = TapoRtspUrlBuilder.capture_live_frame_base64(
-            ip_address=ip_address,
-            username=username,
-            password=password,
+            ip_address=target_ip,
+            username=resolved_user,
+            password=resolved_pass,
             use_substream=False,
         )
         jpeg_bytes = base64.b64decode(live_b64)
@@ -61,7 +102,7 @@ async def get_tapo_live_snapshot(
     except Exception as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"Could not capture live snapshot from Tapo camera at {ip_address}: {exc}",
+            detail=f"Could not capture live snapshot from Tapo camera at {target_ip}: {exc}",
         ) from exc
 
 
@@ -70,18 +111,26 @@ async def capture_from_tapo_and_analyze(
     req: TapoLiveAnalyzeRequest,
     pipeline: CognitiveCoachingPipeline = Depends(get_cognitive_pipeline),
 ) -> CognitiveCoachingResponse:
-    """Captures a real live frame from the Tapo C100 camera (`192.168.11.16:554`) via RTSP and runs the 4-stage AI pipeline."""
+    """Captures a live frame from the discovered Tapo RTSP camera and runs the 4-stage AI pipeline."""
+    resolved_user = req.username.strip() or _read_env_or_dotenv("TAPO_CAMERA_USERNAME")
+    resolved_pass = req.password or _read_env_or_dotenv("TAPO_CAMERA_PASSWORD")
+    discovered_ip, _, _ = await TapoLanDiscovery.discover_tapo_camera(
+        preferred_ip=req.ip_address,
+        configured_ip=_read_env_or_dotenv("TAPO_CAMERA_IP"),
+    )
+    target_ip = discovered_ip or req.ip_address.strip() or TapoRtspUrlBuilder.DEFAULT_TAPO_IP
+
     try:
         live_b64 = TapoRtspUrlBuilder.capture_live_frame_base64(
-            ip_address=req.ip_address,
-            username=req.username,
-            password=req.password,
+            ip_address=target_ip,
+            username=resolved_user,
+            password=resolved_pass,
             use_substream=True,
         )
     except Exception as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"Could not capture frame from Tapo camera at {req.ip_address}: {exc}",
+            detail=f"Could not capture frame from Tapo camera at {target_ip}: {exc}",
         ) from exc
 
     return await pipeline.analyze_session(

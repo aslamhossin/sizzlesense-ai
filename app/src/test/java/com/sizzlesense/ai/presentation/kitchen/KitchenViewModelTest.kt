@@ -4,10 +4,12 @@ import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.session.InMemorySessionStore
+import com.sizzlesense.ai.domain.model.camera.CameraDiscoveryInfo
 import com.sizzlesense.ai.domain.model.coaching.AcousticSizzleSignature
 import com.sizzlesense.ai.domain.model.session.LearnerArchetypeOption
 import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
+import com.sizzlesense.ai.domain.usecase.DiscoverCameraAndServerUseCase
 import com.sizzlesense.ai.presentation.kitchen.component.PcmWavSizzleCodec
 import com.sizzlesense.ai.testing.MainDispatcherRule
 import java.util.Base64
@@ -33,6 +35,10 @@ class KitchenViewModelTest {
 
     private val fallbackDataSource = LocalFallbackCognitiveDataSource()
 
+    private fun offlineDiscoveryUseCase() = DiscoverCameraAndServerUseCase { _, _ ->
+        AppResult.Failure(AppError.NetworkUnavailable("Discovery offline in test"))
+    }
+
     @Test
     fun onIntent_updatesSessionStoreAndSynchronizesKitchenUiState() {
         runTest(mainDispatcherRule.testDispatcher) {
@@ -44,7 +50,8 @@ class KitchenViewModelTest {
                 },
                 captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
                     error("Unused in state sync test")
-                }
+                },
+                discoverCameraAndServer = offlineDiscoveryUseCase()
             )
 
             // Activate WhileSubscribed collector as Compose collectAsStateWithLifecycle does
@@ -94,7 +101,8 @@ class KitchenViewModelTest {
                 },
                 captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
                     error("Unused")
-                }
+                },
+                discoverCameraAndServer = offlineDiscoveryUseCase()
             )
 
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
@@ -122,7 +130,8 @@ class KitchenViewModelTest {
                 },
                 captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
                     AppResult.Failure(AppError.NetworkUnavailable("Should not reach gateway"))
-                }
+                },
+                discoverCameraAndServer = offlineDiscoveryUseCase()
             )
 
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
@@ -163,7 +172,8 @@ class KitchenViewModelTest {
                 },
                 captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
                     error("Unused")
-                }
+                },
+                discoverCameraAndServer = offlineDiscoveryUseCase()
             )
 
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
@@ -209,7 +219,8 @@ class KitchenViewModelTest {
                 },
                 captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
                     error("Unused")
-                }
+                },
+                discoverCameraAndServer = offlineDiscoveryUseCase()
             )
 
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
@@ -223,6 +234,58 @@ class KitchenViewModelTest {
             gate.complete(Unit)
             assertEquals(KitchenUiEffect.NavigateToCoaching, viewModel.effects.first())
             assertFalse(viewModel.uiState.value.isAnalyzing)
+
+            collectorJob.cancel()
+        }
+    }
+
+    @Test
+    fun startupDiscovery_silentlySyncsLiveCameraAndBackendWithoutErrorBannerWhenOfflineFirst() {
+        runTest(mainDispatcherRule.testDispatcher) {
+            val sessionStore = InMemorySessionStore()
+            var callCount = 0
+            val viewModel = KitchenViewModel(
+                sessionStore = sessionStore,
+                analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
+                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                },
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
+                    error("Unused")
+                },
+                discoverCameraAndServer = DiscoverCameraAndServerUseCase { _, _ ->
+                    callCount += 1
+                    if (callCount == 1) {
+                        AppResult.Failure(AppError.NetworkUnavailable("Server offline"))
+                    } else {
+                        AppResult.Success(
+                            CameraDiscoveryInfo(
+                                resolvedBackendUrl = "http://10.0.2.2:8000",
+                                advertisedBackendUrl = "http://192.168.11.7:8000",
+                                cameraIp = "192.168.11.14",
+                                cameraPort = 554,
+                                cameraReachable = true,
+                                hasBackendCredentials = true,
+                                discoverySource = "lan_scan"
+                            )
+                        )
+                    }
+                }
+            )
+
+            val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
+
+            // Startup failure stays silent
+            assertNull(viewModel.uiState.value.errorMessage)
+            assertFalse(viewModel.uiState.value.isDiscoveringSettings)
+
+            // Explicit AutoDetect updates backend URL + Tapo IP
+            viewModel.onIntent(KitchenUiIntent.AutoDetectSettings)
+            assertEquals("http://10.0.2.2:8000", viewModel.uiState.value.backendBaseUrl)
+            assertEquals("192.168.11.14", viewModel.uiState.value.tapoConfig.ipAddress)
+            assertEquals(
+                "Auto-synced • Camera 192.168.11.14 online",
+                viewModel.uiState.value.setupStatusMessage
+            )
 
             collectorJob.cancel()
         }

@@ -1,16 +1,24 @@
 package com.sizzlesense.ai.presentation.kitchen.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsEthernet
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -32,13 +40,21 @@ import com.sizzlesense.ai.presentation.theme.SizzleTheme
 fun TapoBackendSettingsCard(
     tapo: TapoCameraConfig,
     backendBaseUrl: String,
+    isDiscoveringSettings: Boolean,
+    setupStatusMessage: String?,
     onIntent: (KitchenUiIntent) -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
 
+    val cardSubtitle = when {
+        isDiscoveringSettings -> "Detecting camera & server..."
+        !setupStatusMessage.isNullOrBlank() -> setupStatusMessage
+        else -> "Camera ${tapo.ipAddress}"
+    }
+
     SizzleSectionCard(
         title = "Camera & Server Setup",
-        subtitle = "Camera ${tapo.ipAddress}",
+        subtitle = cardSubtitle,
         icon = Icons.Default.SettingsEthernet,
         modifier = Modifier.clickable { expanded = !expanded },
         trailingHeaderContent = {
@@ -53,6 +69,42 @@ fun TapoBackendSettingsCard(
             androidx.compose.foundation.layout.Column(
                 verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.sm)
             ) {
+                OutlinedButton(
+                    onClick = { onIntent(KitchenUiIntent.AutoDetectSettings) },
+                    enabled = !isDiscoveringSettings,
+                    border = BorderStroke(
+                        width = SizzleTheme.spacing.borderStroke,
+                        color = SizzleTheme.colors.outlineDefault
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = SizzleTheme.colors.brandPrimary
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isDiscoveringSettings) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(SizzleTheme.spacing.iconSmall),
+                            strokeWidth = SizzleTheme.spacing.borderStroke * 2,
+                            color = SizzleTheme.colors.brandPrimary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(SizzleTheme.spacing.iconSmall)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(SizzleTheme.spacing.xs))
+                    Text(
+                        text = if (isDiscoveringSettings) {
+                            "Detecting Camera & Server..."
+                        } else {
+                            "Auto-Detect Camera & Server"
+                        },
+                        maxLines = 1
+                    )
+                }
+
                 OutlinedTextField(
                     value = backendBaseUrl,
                     onValueChange = { url -> onIntent(KitchenUiIntent.UpdateBackendUrl(url)) },

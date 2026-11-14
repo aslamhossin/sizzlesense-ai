@@ -17,9 +17,9 @@ class TapoRtspRequest(BaseModel):
 
 
 class TapoLiveAnalyzeRequest(BaseModel):
-    ip_address: str = "192.168.11.16"
-    username: str
-    password: str
+    ip_address: str = ""
+    username: str = ""
+    password: str = ""
     learner_id: str = "tapo_live_learner"
     dish_id: str = "sauteed_onions"
     attempt_number: int = 1
@@ -32,6 +32,17 @@ class TapoLiveAnalyzeRequest(BaseModel):
 class TapoRtspResponse(BaseModel):
     rtsp_url: str
     stream_profile: str
+
+
+class CameraDiscoveryResponse(BaseModel):
+    """Auto-discovered LAN backend and Tapo camera metadata (never exposes secrets)."""
+
+    backend_url: str
+    camera_ip: str | None = None
+    camera_port: int = 554
+    camera_reachable: bool = False
+    has_backend_credentials: bool = False
+    discovery_source: str = "none"
 
 
 class ArchetypeComparisonItem(BaseModel):

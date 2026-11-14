@@ -23,8 +23,8 @@ import kotlinx.serialization.json.Json
 data class PersistedTapoCameraConfigDto(
     @SerialName("ip_address")
     val ipAddress: String = BuildConfig.DEFAULT_TAPO_IP,
-    val username: String = "",
-    val password: String = "",
+    val username: String = BuildConfig.DEFAULT_TAPO_USERNAME,
+    val password: String = BuildConfig.DEFAULT_TAPO_PASSWORD,
     @SerialName("use_sub_stream")
     val useSubStream: Boolean = false,
     val port: Int = 554,
@@ -137,12 +137,25 @@ private fun PersistedSessionSnapshotDto.toDomain(): SessionSnapshot {
         LearnerArchetypeOption.valueOf(selectedArchetype)
     }.getOrDefault(LearnerArchetypeOption.MOISTURE_BLINDNESS)
 
+    val needsDevCredentialHydration =
+        tapoConfig.username.isBlank() && tapoConfig.password.isBlank()
+    val resolvedUsername = if (needsDevCredentialHydration) {
+        BuildConfig.DEFAULT_TAPO_USERNAME
+    } else {
+        tapoConfig.username
+    }
+    val resolvedPassword = if (needsDevCredentialHydration) {
+        BuildConfig.DEFAULT_TAPO_PASSWORD
+    } else {
+        tapoConfig.password
+    }
+
     return SessionSnapshot(
         backendBaseUrl = backendBaseUrl,
         tapoConfig = TapoCameraConfig(
-            ipAddress = tapoConfig.ipAddress,
-            username = tapoConfig.username,
-            password = tapoConfig.password,
+            ipAddress = tapoConfig.ipAddress.ifBlank { BuildConfig.DEFAULT_TAPO_IP },
+            username = resolvedUsername,
+            password = resolvedPassword,
             useSubStream = tapoConfig.useSubStream,
             port = tapoConfig.port,
             isConnected = tapoConfig.isConnected

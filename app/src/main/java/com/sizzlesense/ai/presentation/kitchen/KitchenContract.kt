@@ -15,6 +15,8 @@ data class KitchenUiState(
         LearnerArchetypeOption.MOISTURE_BLINDNESS.presetReflections[1].orEmpty(),
     val isAnalyzing: Boolean = false,
     val activePipelineStageLabel: String = "Ready",
+    val isDiscoveringSettings: Boolean = false,
+    val setupStatusMessage: String? = null,
     val errorMessage: String? = null
 )
 
@@ -26,6 +28,7 @@ sealed interface KitchenUiIntent {
         val password: String,
         val useSubStream: Boolean
     ) : KitchenUiIntent
+    data object AutoDetectSettings : KitchenUiIntent
     data class SetTapoStreamConnected(val connected: Boolean) : KitchenUiIntent
     data class OnLiveFrameCaptured(
         val base64Jpeg: String,

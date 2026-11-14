@@ -86,6 +86,8 @@ fun KitchenScreen(
         TapoBackendSettingsCard(
             tapo = state.tapoConfig,
             backendBaseUrl = state.backendBaseUrl,
+            isDiscoveringSettings = state.isDiscoveringSettings,
+            setupStatusMessage = state.setupStatusMessage,
             onIntent = onIntent
         )
 
