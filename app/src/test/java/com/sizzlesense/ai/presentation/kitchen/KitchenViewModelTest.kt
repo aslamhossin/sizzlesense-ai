@@ -11,6 +11,7 @@ import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
 import com.sizzlesense.ai.presentation.kitchen.component.PcmWavSizzleCodec
 import com.sizzlesense.ai.testing.MainDispatcherRule
 import java.util.Base64
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -34,7 +35,7 @@ class KitchenViewModelTest {
 
     @Test
     fun onIntent_updatesSessionStoreAndSynchronizesKitchenUiState() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
             val viewModel = KitchenViewModel(
                 sessionStore = sessionStore,
@@ -84,7 +85,7 @@ class KitchenViewModelTest {
 
     @Test
     fun analyzeCurrentSession_recordsCoachingResponseAndEmitsNavigateToCoachingEffect() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
             val viewModel = KitchenViewModel(
                 sessionStore = sessionStore,
@@ -112,7 +113,7 @@ class KitchenViewModelTest {
 
     @Test
     fun captureFromBackendTapoAndAnalyze_setsErrorMessageWhenCameraIpIsBlank() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
             val viewModel = KitchenViewModel(
                 sessionStore = sessionStore,
@@ -151,7 +152,7 @@ class KitchenViewModelTest {
 
     @Test
     fun onAudioSampleCaptured_encodesValidRiffWavAndForwardsAudioToAnalyzeGateway() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             var forwardedAudioB64: String? = null
             val sessionStore = InMemorySessionStore()
             val viewModel = KitchenViewModel(
@@ -187,6 +188,41 @@ class KitchenViewModelTest {
             val effect = viewModel.effects.first()
             assertEquals(KitchenUiEffect.NavigateToCoaching, effect)
             assertEquals(wavB64, forwardedAudioB64)
+
+            collectorJob.cancel()
+        }
+    }
+
+    @Test
+    fun analyzeCurrentSession_ignoresDuplicateRequestWhileAnalysisIsInFlight() {
+        runTest(mainDispatcherRule.testDispatcher) {
+            val sessionStore = InMemorySessionStore()
+            val gate = CompletableDeferred<Unit>()
+            var invocationCount = 0
+
+            val viewModel = KitchenViewModel(
+                sessionStore = sessionStore,
+                analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
+                    invocationCount += 1
+                    gate.await()
+                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                },
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
+                    error("Unused")
+                }
+            )
+
+            val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
+
+            viewModel.onIntent(KitchenUiIntent.AnalyzeCurrentSession)
+            viewModel.onIntent(KitchenUiIntent.AnalyzeCurrentSession)
+
+            assertTrue(viewModel.uiState.value.isAnalyzing)
+            assertEquals(1, invocationCount)
+
+            gate.complete(Unit)
+            assertEquals(KitchenUiEffect.NavigateToCoaching, viewModel.effects.first())
+            assertFalse(viewModel.uiState.value.isAnalyzing)
 
             collectorJob.cancel()
         }

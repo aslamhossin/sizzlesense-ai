@@ -27,7 +27,7 @@ class CoachingViewModelTest {
 
     @Test
     fun analyzeCurrentAttempt_updatesLatestCoachingResponseInStateAndStore() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
             sessionStore.selectAttemptNumber(2)
 
@@ -52,7 +52,7 @@ class CoachingViewModelTest {
 
     @Test
     fun analyzeCurrentAttempt_surfacesReadableErrorMessageOnFailure() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
             val viewModel = CoachingViewModel(
                 sessionStore = sessionStore,

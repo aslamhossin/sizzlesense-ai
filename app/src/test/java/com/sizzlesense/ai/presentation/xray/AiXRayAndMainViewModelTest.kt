@@ -28,7 +28,7 @@ class AiXRayAndMainViewModelTest {
 
     @Test
     fun aiXRayViewModel_togglesSuppressedIssuesAndSyncsCoachingTrace() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
             val sampleResponse = fallbackDataSource.buildFallbackCoachingResponse(
                 SessionAnalyzeRequest(
@@ -55,7 +55,7 @@ class AiXRayAndMainViewModelTest {
 
     @Test
     fun mainViewModel_managesNavigationDestinationAndAttemptMasteryHistory() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
             val viewModel = MainViewModel(sessionStore = sessionStore)
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)

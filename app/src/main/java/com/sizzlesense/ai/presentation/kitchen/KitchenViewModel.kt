@@ -2,6 +2,7 @@ package com.sizzlesense.ai.presentation.kitchen
 
 import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.core.ui.BaseViewModel
+import com.sizzlesense.ai.core.ui.TaskStatus
 import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.session.SessionSnapshot
 import com.sizzlesense.ai.domain.repository.SessionStore
@@ -9,29 +10,28 @@ import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 
 @HiltViewModel
 class KitchenViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val analyzeCookingSession: AnalyzeCookingSessionUseCase,
     private val captureLiveTapoSession: CaptureLiveTapoSessionUseCase
-) : BaseViewModel<KitchenUiState, KitchenUiIntent, KitchenUiEffect>(KitchenUiState()) {
+) : BaseViewModel<KitchenUiState, KitchenUiIntent, KitchenUiEffect>() {
 
-    init {
-        sessionStore.sessionState.collectWhileSubscribed { session ->
-            updateState { state ->
-                state.copy(
-                    backendBaseUrl = session.backendBaseUrl,
-                    tapoConfig = session.tapoConfig,
-                    capturedFrameLabel = session.capturedFrameLabel,
-                    capturedAudioLabel = session.capturedAudioLabel,
-                    selectedArchetype = session.selectedArchetype,
-                    currentAttemptNumber = session.currentAttemptNumber,
-                    learnerReflectionText = session.learnerReflectionText
-                )
-            }
-        }
-    }
+    private val taskStatus = MutableStateFlow(TaskStatus())
+
+    override val uiState: StateFlow<KitchenUiState> = combine(
+        sessionStore.sessionState,
+        taskStatus
+    ) { session, status ->
+        session.toKitchenUiState(status)
+    }.stateWhileSubscribed(
+        initialValue = sessionStore.sessionState.value.toKitchenUiState(taskStatus.value)
+    )
 
     override fun onIntent(intent: KitchenUiIntent) {
         when (intent) {
@@ -83,7 +83,7 @@ class KitchenViewModel @Inject constructor(
             KitchenUiIntent.CaptureFromBackendTapoAndAnalyze -> runBackendTapoLiveCapture()
 
             KitchenUiIntent.ClearError -> {
-                updateState { it.copy(errorMessage = null) }
+                taskStatus.update { it.copy(errorMessage = null) }
             }
         }
     }
@@ -121,36 +121,27 @@ class KitchenViewModel @Inject constructor(
         block: suspend (SessionSnapshot) -> AppResult<CognitiveCoachingResponse>
     ) {
         val snapshot = sessionStore.sessionState.value
-        updateState {
-            it.copy(
-                isAnalyzing = true,
-                activePipelineStageLabel = stageLabel,
-                errorMessage = null
-            )
-        }
-        launchResultTask(
-            onSuccess = { response ->
-                sessionStore.recordCoachingResponse(response)
-                updateState {
-                    it.copy(
-                        isAnalyzing = false,
-                        activePipelineStageLabel = "Done",
-                        errorMessage = null
-                    )
-                }
-                emitEffect(KitchenUiEffect.NavigateToCoaching)
-            },
-            onError = { appError ->
-                updateState {
-                    it.copy(
-                        isAnalyzing = false,
-                        activePipelineStageLabel = "Unable to analyze",
-                        errorMessage = appError.readableMessage
-                    )
-                }
-            }
+        taskStatus.launchGuardedTask(
+            runningLabel = stageLabel,
+            completedLabel = "Done",
+            failedLabel = "Unable to analyze",
+            effectOnSuccess = KitchenUiEffect.NavigateToCoaching,
+            onSuccess = { response -> sessionStore.recordCoachingResponse(response) }
         ) {
             block(snapshot)
         }
     }
+
+    private fun SessionSnapshot.toKitchenUiState(status: TaskStatus) = KitchenUiState(
+        backendBaseUrl = backendBaseUrl,
+        tapoConfig = tapoConfig,
+        capturedFrameLabel = capturedFrameLabel,
+        capturedAudioLabel = capturedAudioLabel,
+        selectedArchetype = selectedArchetype,
+        currentAttemptNumber = currentAttemptNumber,
+        learnerReflectionText = learnerReflectionText,
+        isAnalyzing = status.isRunning,
+        activePipelineStageLabel = status.label,
+        errorMessage = status.errorMessage
+    )
 }

@@ -27,7 +27,7 @@ class EvalBenchViewModelTest {
 
     @Test
     fun runHumanLearningEvalSuite_records10TrajectorySuiteInSessionStore() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
             val viewModel = EvalBenchViewModel(
                 sessionStore = sessionStore,
@@ -52,7 +52,7 @@ class EvalBenchViewModelTest {
 
     @Test
     fun runHumanLearningEvalSuite_surfacesTimeoutErrorAndSupportsClearError() {
-        runTest {
+        runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
             val viewModel = EvalBenchViewModel(
                 sessionStore = sessionStore,
