@@ -18,6 +18,7 @@ data class SizzleSpacingTokens(
     val iconSmall: Dp = 20.dp,
     val iconMedium: Dp = 22.dp,
     val topBarLogoBox: Dp = 38.dp,
+    val videoIdleHeight: Dp = 128.dp,
     val videoPreviewHeight: Dp = 210.dp
 )
 

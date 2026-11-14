@@ -2,7 +2,10 @@ package com.sizzlesense.ai.presentation.kitchen.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PlayArrow
@@ -29,10 +32,13 @@ fun CoachingActionButtons(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.md)
         ) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(
+                modifier = Modifier.size(SizzleTheme.spacing.iconMedium)
+            )
             Text(
                 text = activePipelineStageLabel,
-                style = SizzleTheme.typography.bodySmall
+                style = SizzleTheme.typography.bodySmall,
+                color = SizzleTheme.colors.textSecondary
             )
         }
     } else {
@@ -42,9 +48,14 @@ fun CoachingActionButtons(
         ) {
             Icon(
                 imageVector = Icons.Default.PlayArrow,
-                contentDescription = null
+                contentDescription = null,
+                modifier = Modifier.size(SizzleTheme.spacing.iconSmall)
             )
-            Text("  Run 4-Stage Applied AI Coaching (Attempt $currentAttemptNumber)")
+            Spacer(modifier = Modifier.width(SizzleTheme.spacing.xs))
+            Text(
+                text = "Get Coaching • Attempt $currentAttemptNumber",
+                maxLines = 1
+            )
         }
 
         OutlinedButton(
@@ -53,9 +64,14 @@ fun CoachingActionButtons(
         ) {
             Icon(
                 imageVector = Icons.Default.CameraAlt,
-                contentDescription = null
+                contentDescription = null,
+                modifier = Modifier.size(SizzleTheme.spacing.iconSmall)
             )
-            Text("  Grab Live Tapo C100 Frame via Backend & Analyze")
+            Spacer(modifier = Modifier.width(SizzleTheme.spacing.xs))
+            Text(
+                text = "Snap Camera & Coach",
+                maxLines = 1
+            )
         }
     }
 }

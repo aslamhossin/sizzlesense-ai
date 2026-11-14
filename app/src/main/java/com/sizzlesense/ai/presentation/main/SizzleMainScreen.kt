@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.presentation.main.component.AttemptSelectorBar
 import com.sizzlesense.ai.presentation.main.component.SizzleBottomNavigationBar
 import com.sizzlesense.ai.presentation.main.component.SizzleTopAppBar
+import com.sizzlesense.ai.presentation.navigation.SizzleDestination
 import com.sizzlesense.ai.presentation.navigation.SizzleNavGraph
 import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
@@ -47,12 +48,14 @@ fun SizzleMainScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.sm)
         ) {
-            AttemptSelectorBar(
-                state = state,
-                onAttemptSelected = { attempt ->
-                    onIntent(MainUiIntent.SelectAttemptNumber(attempt))
-                }
-            )
+            if (state.activeDestination != SizzleDestination.EVAL_BENCH) {
+                AttemptSelectorBar(
+                    state = state,
+                    onAttemptSelected = { attempt ->
+                        onIntent(MainUiIntent.SelectAttemptNumber(attempt))
+                    }
+                )
+            }
 
             SizzleNavGraph(
                 activeDestination = state.activeDestination,

@@ -54,7 +54,8 @@ class CoachingViewModel @Inject constructor(
                 archetypeId = snapshot.selectedArchetype.id,
                 attemptNumber = snapshot.currentAttemptNumber,
                 learnerReflection = snapshot.learnerReflectionText,
-                capturedFrameBase64 = snapshot.capturedFrameBase64
+                capturedFrameBase64 = snapshot.capturedFrameBase64,
+                capturedAudioWavBase64 = snapshot.capturedAudioWavBase64
             )
         }
     }

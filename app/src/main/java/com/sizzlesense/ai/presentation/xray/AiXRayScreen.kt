@@ -2,7 +2,9 @@ package com.sizzlesense.ai.presentation.xray
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -60,5 +62,6 @@ fun AiXRayScreen(
                 onIntent(AiXRayUiIntent.ToggleSuppressedIssues(visible))
             }
         )
+        Spacer(modifier = Modifier.height(SizzleTheme.spacing.md))
     }
 }

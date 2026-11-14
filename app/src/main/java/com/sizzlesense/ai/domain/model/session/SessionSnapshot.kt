@@ -10,9 +10,9 @@ data class SessionSnapshot(
     val backendBaseUrl: String,
     val tapoConfig: TapoCameraConfig,
     val capturedFrameBase64: String? = null,
-    val capturedFrameLabel: String = "No live frame captured yet",
+    val capturedFrameLabel: String = "",
     val capturedAudioWavBase64: String? = null,
-    val capturedAudioLabel: String = "No pan audio sample captured",
+    val capturedAudioLabel: String = "Record pan sound or pick a sample",
     val selectedArchetype: LearnerArchetypeOption = LearnerArchetypeOption.MOISTURE_BLINDNESS,
     val currentAttemptNumber: Int = 1,
     val learnerReflectionText: String =

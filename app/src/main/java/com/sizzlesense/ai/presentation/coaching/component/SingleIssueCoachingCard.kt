@@ -15,18 +15,19 @@ fun SingleIssueCoachingCard(response: CognitiveCoachingResponse) {
     val sensory = response.stage4SensoryCoaching
     SizzleSectionCard(
         title = response.stage3TeachingDecision.selectedPrimaryIssue,
-        subtitle = "Single-Issue Focus (Attempt ${response.attemptNumber})",
+        subtitle = "Attempt ${response.attemptNumber} Focus",
         icon = Icons.Default.Lightbulb
     ) {
         Text(
             text = sensory.coachingMessage,
-            style = SizzleTheme.typography.bodyMedium
+            style = SizzleTheme.typography.bodyMedium,
+            color = SizzleTheme.colors.textPrimary
         )
-        HorizontalDivider()
+        HorizontalDivider(color = SizzleTheme.colors.outlineSubtle)
         SensoryCuesList(sensory = sensory)
-        HorizontalDivider()
+        HorizontalDivider(color = SizzleTheme.colors.outlineSubtle)
         LabeledDetailRow(
-            label = "Next Attempt Micro-Experiment:",
+            label = "Next Try",
             value = sensory.nextAttemptMicroExperiment
         )
     }

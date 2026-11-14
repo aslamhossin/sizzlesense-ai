@@ -7,14 +7,14 @@ import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 data class KitchenUiState(
     val backendBaseUrl: String = BuildConfig.DEFAULT_BACKEND_URL,
     val tapoConfig: TapoCameraConfig = TapoCameraConfig(ipAddress = BuildConfig.DEFAULT_TAPO_IP),
-    val capturedFrameLabel: String = "No live frame captured yet",
-    val capturedAudioLabel: String = "No pan audio sample captured",
+    val capturedFrameLabel: String = "",
+    val capturedAudioLabel: String = "Record pan sound or pick a sample",
     val selectedArchetype: LearnerArchetypeOption = LearnerArchetypeOption.MOISTURE_BLINDNESS,
     val currentAttemptNumber: Int = 1,
     val learnerReflectionText: String =
         LearnerArchetypeOption.MOISTURE_BLINDNESS.presetReflections[1].orEmpty(),
     val isAnalyzing: Boolean = false,
-    val activePipelineStageLabel: String = "Idle — Ready for Kitchen Session",
+    val activePipelineStageLabel: String = "Ready",
     val errorMessage: String? = null
 )
 

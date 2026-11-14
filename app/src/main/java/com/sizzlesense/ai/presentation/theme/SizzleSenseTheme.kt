@@ -36,16 +36,25 @@ fun SizzleSenseTheme(
     val materialColorScheme = remember(colorTokens) {
         darkColorScheme(
             primary = colorTokens.brandPrimary,
-            secondary = colorTokens.brandSecondary,
-            tertiary = colorTokens.accentSuccess,
-            background = colorTokens.backgroundPrimary,
-            surface = colorTokens.surfacePrimary,
-            surfaceVariant = colorTokens.surfaceElevated,
             onPrimary = colorTokens.textOnBrand,
+            primaryContainer = colorTokens.brandPrimaryContainer,
+            onPrimaryContainer = colorTokens.onBrandPrimaryContainer,
+            secondary = colorTokens.brandSecondary,
             onSecondary = colorTokens.textOnBrand,
+            secondaryContainer = colorTokens.brandPrimaryContainer,
+            onSecondaryContainer = colorTokens.onBrandPrimaryContainer,
+            tertiary = colorTokens.accentSuccess,
+            onTertiary = colorTokens.textOnBrand,
+            tertiaryContainer = colorTokens.accentSuccessContainer,
+            onTertiaryContainer = colorTokens.accentSuccess,
+            background = colorTokens.backgroundPrimary,
             onBackground = colorTokens.textPrimary,
+            surface = colorTokens.surfacePrimary,
             onSurface = colorTokens.textPrimary,
+            surfaceVariant = colorTokens.surfaceElevated,
             onSurfaceVariant = colorTokens.textSecondary,
+            outline = colorTokens.outlineDefault,
+            outlineVariant = colorTokens.outlineSubtle,
             error = colorTokens.statusError
         )
     }

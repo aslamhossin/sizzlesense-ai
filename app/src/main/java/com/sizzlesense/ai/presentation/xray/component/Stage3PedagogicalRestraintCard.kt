@@ -22,12 +22,12 @@ fun Stage3PedagogicalRestraintCard(
     onToggleSuppressedIssues: (Boolean) -> Unit
 ) {
     SizzleSectionCard(
-        title = "Stage 3: Pedagogical Restraint & Omitted Issues",
-        subtitle = "Chef Causal Priority Graph",
+        title = "3. Coaching Focus",
+        subtitle = "Single-Issue Priority Filter",
         icon = Icons.Default.FilterCenterFocus
     ) {
         LabeledDetailRow(
-            label = "Selected Primary: ${stage3.selectedPrimaryIssue}",
+            label = "Primary Focus: ${stage3.selectedPrimaryIssue}",
             value = stage3.causalPriorityRationale
         )
         Row(
@@ -36,7 +36,7 @@ fun Stage3PedagogicalRestraintCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Show Deliberately Suppressed Issues (${stage3.deliberatelyOmittedIssues.size})",
+                text = "Held-back tips (${stage3.deliberatelyOmittedIssues.size})",
                 style = SizzleTheme.typography.labelMedium,
                 color = SizzleTheme.colors.brandPrimary
             )
@@ -49,7 +49,8 @@ fun Stage3PedagogicalRestraintCard(
             stage3.deliberatelyOmittedIssues.forEach { omitted ->
                 Text(
                     text = "• ${omitted.issue} — ${omitted.suppressionReason}",
-                    style = SizzleTheme.typography.bodySmall
+                    style = SizzleTheme.typography.bodySmall,
+                    color = SizzleTheme.colors.textSecondary
                 )
             }
         }

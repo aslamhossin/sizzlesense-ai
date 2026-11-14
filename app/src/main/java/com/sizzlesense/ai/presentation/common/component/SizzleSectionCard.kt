@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,6 +28,7 @@ fun SizzleSectionCard(
     subtitle: String? = null,
     icon: ImageVector? = null,
     modifier: Modifier = Modifier,
+    trailingHeaderContent: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -37,37 +39,45 @@ fun SizzleSectionCard(
         ),
         border = BorderStroke(
             width = SizzleTheme.spacing.borderStroke,
-            color = SizzleTheme.colors.surfaceElevated
+            color = SizzleTheme.colors.outlineSubtle
         )
     ) {
         Column(
             modifier = Modifier.padding(SizzleTheme.spacing.lg),
             verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.sm)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (icon != null) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = SizzleTheme.colors.brandPrimary,
-                        modifier = Modifier.size(SizzleTheme.spacing.iconSmall)
-                    )
-                    Spacer(modifier = Modifier.width(SizzleTheme.spacing.xs))
-                }
-                Column {
-                    Text(
-                        text = title,
-                        style = SizzleTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = SizzleTheme.colors.textPrimary
-                    )
-                    if (!subtitle.isNullOrBlank()) {
-                        Text(
-                            text = subtitle,
-                            style = SizzleTheme.typography.labelSmall,
-                            color = SizzleTheme.colors.textSecondary
+            if (title.isNotBlank() || !subtitle.isNullOrBlank() || icon != null || trailingHeaderContent != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (icon != null) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = SizzleTheme.colors.brandPrimary,
+                            modifier = Modifier.size(SizzleTheme.spacing.iconSmall)
                         )
+                        Spacer(modifier = Modifier.width(SizzleTheme.spacing.xs))
                     }
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (title.isNotBlank()) {
+                            Text(
+                                text = title,
+                                style = SizzleTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = SizzleTheme.colors.textPrimary
+                            )
+                        }
+                        if (!subtitle.isNullOrBlank()) {
+                            Text(
+                                text = subtitle,
+                                style = SizzleTheme.typography.labelSmall,
+                                color = SizzleTheme.colors.textSecondary
+                            )
+                        }
+                    }
+                    trailingHeaderContent?.invoke(this)
                 }
             }
             content()

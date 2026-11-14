@@ -8,6 +8,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.sizzlesense.ai.domain.model.coaching.LearnerStateEstimate
 import com.sizzlesense.ai.presentation.common.component.LabeledDetailRow
 import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
+import com.sizzlesense.ai.presentation.common.format.DisplayLabelFormatter
 import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
@@ -15,27 +16,33 @@ fun Stage2LearnerLatentStateCard(
     reasoningModelUsed: String,
     stage2: LearnerStateEstimate
 ) {
+    val statusLabel = DisplayLabelFormatter.formatTransferStatus(stage2.transferStatus)
+    val verifiedBadge = if (stage2.conceptualShiftVerified) " • Verified ✓" else ""
+
     SizzleSectionCard(
-        title = "Stage 2: Learner Latent State Estimation",
-        subtitle = "Model: $reasoningModelUsed",
+        title = "2. Habit Diagnosis",
+        subtitle = DisplayLabelFormatter.formatModelSource(reasoningModelUsed),
         icon = Icons.Default.Psychology
     ) {
         Text(
-            text = "Inferred Archetype: ${stage2.learnerArchetypeId}",
-            fontWeight = FontWeight.SemiBold
+            text = "Pattern: ${DisplayLabelFormatter.formatArchetypeId(stage2.learnerArchetypeId)}",
+            fontWeight = FontWeight.SemiBold,
+            color = SizzleTheme.colors.textPrimary
         )
         Text(
-            text = "Transfer Status: ${stage2.transferStatus} (Verified Shift: ${stage2.conceptualShiftVerified})",
+            text = "Progress: $statusLabel$verifiedBadge",
             style = SizzleTheme.typography.bodySmall,
             color = SizzleTheme.colors.accentSuccess
         )
         LabeledDetailRow(
-            label = "Decision Root Cause:",
+            label = "Root Cause",
             value = stage2.decisionRootCause
         )
-        LabeledDetailRow(
-            label = "Longitudinal Delta:",
-            value = stage2.longitudinalDeltaSummary
-        )
+        if (stage2.longitudinalDeltaSummary.isNotBlank()) {
+            LabeledDetailRow(
+                label = "Progress Note",
+                value = stage2.longitudinalDeltaSummary
+            )
+        }
     }
 }

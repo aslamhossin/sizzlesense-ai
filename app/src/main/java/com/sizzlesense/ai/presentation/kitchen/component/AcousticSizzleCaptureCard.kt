@@ -9,10 +9,12 @@ import android.media.MediaRecorder
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Mic
@@ -26,9 +28,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
 import com.sizzlesense.ai.domain.model.coaching.AcousticSizzleSignature
 import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
@@ -177,7 +179,6 @@ object PcmWavSizzleCodec {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AcousticSizzleCaptureCard(
     capturedAudioLabel: String,
@@ -197,9 +198,9 @@ fun AcousticSizzleCaptureCard(
             }.onSuccess { wavB64 ->
                 selectedPreset = null
                 val stamp = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
-                onAudioCaptured(wavB64, "Live Mic 1.5s WAV @ $stamp (16kHz PCM)")
+                onAudioCaptured(wavB64, "Live mic recorded • $stamp")
             }.onFailure { err ->
-                onAudioCaptured("", "Mic capture error: ${err.message ?: "unavailable"}")
+                onAudioCaptured("", "Mic unavailable: ${err.message ?: "check permission"}")
             }
             isRecording = false
         }
@@ -211,70 +212,89 @@ fun AcousticSizzleCaptureCard(
         if (granted) {
             launchLiveRecording()
         } else {
-            onAudioCaptured("", "Microphone permission denied — use preset chips below")
+            onAudioCaptured("", "Mic permission needed — or pick a sample below")
         }
     }
 
     SizzleSectionCard(
-        title = "Acoustic Sizzle Sensor (16kHz FFT + Gemini Audio)",
+        title = "Pan Sound",
         subtitle = capturedAudioLabel,
         icon = Icons.Default.GraphicEq
     ) {
-        Row(
+        Button(
+            enabled = !isRecording,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(
-                enabled = !isRecording,
-                onClick = {
-                    val hasPerm = ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.RECORD_AUDIO
-                    ) == PackageManager.PERMISSION_GRANTED
-                    if (hasPerm) {
-                        launchLiveRecording()
-                    } else {
-                        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    }
+            onClick = {
+                val hasPerm = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.RECORD_AUDIO
+                ) == PackageManager.PERMISSION_GRANTED
+                if (hasPerm) {
+                    launchLiveRecording()
+                } else {
+                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                 }
-            ) {
-                Icon(imageVector = Icons.Default.Mic, contentDescription = null)
-                Text(
-                    text = if (isRecording) " Listening (1.5s)..." else " Record Pan Audio (1.5s)"
-                )
             }
+        ) {
+            Icon(
+                imageVector = Icons.Default.Mic,
+                contentDescription = null,
+                modifier = Modifier.size(SizzleTheme.spacing.iconSmall)
+            )
+            Spacer(modifier = Modifier.width(SizzleTheme.spacing.xs))
+            Text(
+                text = if (isRecording) "Listening (1.5s)..." else "Record Pan (1.5s)",
+                maxLines = 1
+            )
         }
 
         Text(
-            text = "Or simulate stove-top PCM WAV waveform for FFT testing:",
+            text = "Or test with a sample sound:",
             style = SizzleTheme.typography.bodySmall,
             color = SizzleTheme.colors.textSecondary
         )
 
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs)
-        ) {
-            val presets = listOf(
-                AcousticSizzleSignature.WET_STEAM_BUBBLE to "100°C Wet Bubble",
-                AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE to "155°C Maillard Sizzle",
-                AcousticSizzleSignature.AGGRESSIVE_POPPING_BURN to "190°C Scorch Pop",
-                AcousticSizzleSignature.SILENT_COLD to "Silent Cold Pan"
+        val presetRows = listOf(
+            listOf(
+                AcousticSizzleSignature.WET_STEAM_BUBBLE to "Wet Bubble",
+                AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE to "Crisp Sizzle"
+            ),
+            listOf(
+                AcousticSizzleSignature.AGGRESSIVE_POPPING_BURN to "Harsh Scorch",
+                AcousticSizzleSignature.SILENT_COLD to "Cold Pan"
             )
-            presets.forEach { (sig, label) ->
-                FilterChip(
-                    selected = selectedPreset == sig,
-                    onClick = {
-                        selectedPreset = sig
-                        scope.launch(Dispatchers.Default) {
-                            val wavB64 = PcmWavSizzleCodec.synthesizePresetWavBase64(sig)
-                            withContext(Dispatchers.Main) {
-                                onAudioCaptured(wavB64, "Preset WAV: $label (16kHz PCM)")
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xxs)) {
+            presetRows.forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs)
+                ) {
+                    rowItems.forEach { (sig, label) ->
+                        FilterChip(
+                            selected = selectedPreset == sig,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                selectedPreset = sig
+                                scope.launch(Dispatchers.Default) {
+                                    val wavB64 = PcmWavSizzleCodec.synthesizePresetWavBase64(sig)
+                                    withContext(Dispatchers.Main) {
+                                        onAudioCaptured(wavB64, "Sample: $label")
+                                    }
+                                }
+                            },
+                            label = {
+                                Text(
+                                    text = label,
+                                    maxLines = 1,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
-                        }
-                    },
-                    label = { Text(label) }
-                )
+                        )
+                    }
+                }
             }
         }
     }

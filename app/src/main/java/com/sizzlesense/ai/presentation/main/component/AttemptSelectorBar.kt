@@ -7,6 +7,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import com.sizzlesense.ai.presentation.main.MainUiState
 import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
@@ -24,9 +25,13 @@ fun AttemptSelectorBar(
             FilterChip(
                 selected = state.currentAttemptNumber == attempt,
                 onClick = { onAttemptSelected(attempt) },
+                modifier = Modifier.weight(1f),
                 label = {
                     Text(
-                        text = if (completed) "Attempt $attempt ✓" else "Attempt $attempt"
+                        text = if (completed) "Attempt $attempt ✓" else "Attempt $attempt",
+                        maxLines = 1,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             )

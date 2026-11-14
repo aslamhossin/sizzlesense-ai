@@ -8,11 +8,11 @@ sealed interface AppError {
     val readableMessage: String
 
     data class NetworkUnavailable(
-        override val readableMessage: String = "Unable to reach the Python AI Backend on LAN."
+        override val readableMessage: String = "Couldn't reach the coaching server."
     ) : AppError
 
     data class Timeout(
-        override val readableMessage: String = "Request timed out while waiting for Gemini 3 reasoning."
+        override val readableMessage: String = "Analysis timed out. Please try again."
     ) : AppError
 
     data class HttpError(
@@ -22,7 +22,7 @@ sealed interface AppError {
     ) : AppError
 
     data class SerializationError(
-        override val readableMessage: String = "Failed to parse backend JSON payload."
+        override val readableMessage: String = "Received an unexpected response from the server."
     ) : AppError
 
     data class ValidationError(

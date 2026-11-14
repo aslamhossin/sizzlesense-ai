@@ -3,13 +3,13 @@ package com.sizzlesense.ai.domain.model.session
 enum class LearnerArchetypeOption(
     val id: String,
     val title: String,
-    val jdSubtitle: String,
+    val description: String,
     val presetReflections: Map<Int, String>
 ) {
     MOISTURE_BLINDNESS(
         id = "moisture_blindness",
-        title = "Learner A: Moisture Blindness",
-        jdSubtitle = "Crowds pan & stirs in liquid without evaporating water",
+        title = "Watery Pan",
+        description = "Onions crowded or stirred constantly, trapping steam",
         presetReflections = mapOf(
             1 to "I kept stirring the onions for 8 minutes on medium heat, but they stayed pale and watery instead of browning.",
             2 to "I spread the onions out and waited until the wet bubbling sound turned into a crisp sizzle before stirring!",
@@ -18,8 +18,8 @@ enum class LearnerArchetypeOption(
     ),
     HEAT_ANXIETY(
         id = "heat_anxiety",
-        title = "Learner B: Heat Anxiety",
-        jdSubtitle = "Fears burning when steam rises & dials heat too low",
+        title = "Heat Fear",
+        description = "Turned heat down when steam rose",
         presetReflections = mapOf(
             1 to "It started steaming a lot right away so I turned the heat way down so it wouldn't burn, and nothing browned.",
             2 to "I saw the white steam again, recognized it was harmless water vapor, and kept the heat steady until golden.",
@@ -28,8 +28,8 @@ enum class LearnerArchetypeOption(
     ),
     PERCEPTION_BLINDSPOT(
         id = "perception_blindspot",
-        title = "Learner C: Perception Blindspot",
-        jdSubtitle = "Believes soft pale onions are browned after 5-min timer",
+        title = "Timer Trap",
+        description = "Stopped by recipe minutes instead of color or sizzle",
         presetReflections = mapOf(
             1 to "I sautéed the onions for 5 minutes just like the recipe said and they browned really nicely!",
             2 to "I ignored the 5-minute timer this time and waited until I saw actual amber-gold color on the edges and pan fond.",

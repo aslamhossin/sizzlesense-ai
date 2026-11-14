@@ -4,16 +4,26 @@ import android.graphics.Bitmap
 import android.util.Base64
 import android.view.TextureView
 import androidx.annotation.OptIn
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -36,6 +47,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.rtsp.RtspMediaSource
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
+import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
 import com.sizzlesense.ai.presentation.theme.SizzleTheme
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
@@ -99,14 +111,18 @@ fun TapoRtspPlayerView(
         }
     }
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs)
+    SizzleSectionCard(
+        title = "Stove Camera",
+        subtitle = if (config.isConnected) "Streaming • ${config.ipAddress}" else "Offline",
+        icon = Icons.Default.Videocam,
+        modifier = modifier
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(SizzleTheme.spacing.videoPreviewHeight)
+                .height(
+                    if (config.isConnected) SizzleTheme.spacing.videoPreviewHeight else SizzleTheme.spacing.videoIdleHeight
+                )
                 .clip(SizzleTheme.radius.md)
                 .background(SizzleTheme.colors.videoCanvasBackground),
             contentAlignment = Alignment.Center
@@ -129,17 +145,19 @@ fun TapoRtspPlayerView(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs),
-                    modifier = Modifier.padding(SizzleTheme.spacing.lg)
+                    modifier = Modifier.padding(SizzleTheme.spacing.md)
                 ) {
-                    Text(
-                        text = "Tapo C100 Overhead Kitchen Tracker (${config.ipAddress}:554)",
-                        color = SizzleTheme.colors.textPrimary,
-                        style = SizzleTheme.typography.titleSmall
+                    Icon(
+                        imageVector = Icons.Default.VideocamOff,
+                        contentDescription = null,
+                        tint = SizzleTheme.colors.textSecondary,
+                        modifier = Modifier.size(SizzleTheme.spacing.iconMedium)
                     )
                     Text(
-                        text = "Enter your Tapo Camera Account credentials below to stream live RTSP video or capture directly via the Python AI Backend.",
+                        text = "Configure credentials in Setup below to preview your pan",
                         color = SizzleTheme.colors.textSecondary,
-                        style = SizzleTheme.typography.bodySmall
+                        style = SizzleTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -153,7 +171,10 @@ fun TapoRtspPlayerView(
                 onClick = { onConnectToggle(!config.isConnected) },
                 modifier = Modifier.weight(1f)
             ) {
-                Text(if (config.isConnected) "Stop RTSP Stream" else "Stream Tapo C100 Live")
+                Text(
+                    text = if (config.isConnected) "Stop Camera" else "Start Camera",
+                    maxLines = 1
+                )
             }
 
             OutlinedButton(
@@ -168,13 +189,34 @@ fun TapoRtspPlayerView(
                             val timestamp = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
                             encoded to timestamp
                         }
-                        onFrameCaptured(b64, "Captured from ExoPlayer RTSP at $ts")
+                        onFrameCaptured(b64, "Camera frame ($ts)")
                     }
                 },
                 enabled = config.isConnected,
+                border = BorderStroke(
+                    width = SizzleTheme.spacing.borderStroke,
+                    color = if (config.isConnected) {
+                        SizzleTheme.colors.outlineDefault
+                    } else {
+                        SizzleTheme.colors.outlineSubtle
+                    }
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = SizzleTheme.colors.textPrimary,
+                    disabledContentColor = SizzleTheme.colors.textSecondary.copy(alpha = 0.55f)
+                ),
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Grab Frame from Stream")
+                Icon(
+                    imageVector = Icons.Default.PhotoCamera,
+                    contentDescription = null,
+                    modifier = Modifier.size(SizzleTheme.spacing.iconSmall)
+                )
+                Spacer(modifier = Modifier.width(SizzleTheme.spacing.xs))
+                Text(
+                    text = "Snap Frame",
+                    maxLines = 1
+                )
             }
         }
     }

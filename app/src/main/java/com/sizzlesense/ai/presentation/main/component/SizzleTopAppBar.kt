@@ -53,7 +53,7 @@ fun SizzleTopAppBar() {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Human Learning Cooking Coach • Gemini 3",
+                        text = "Sensory Cooking Coach",
                         style = SizzleTheme.typography.labelSmall,
                         color = SizzleTheme.colors.textSecondary
                     )

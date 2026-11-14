@@ -1,8 +1,8 @@
 package com.sizzlesense.ai.presentation.navigation
 
 enum class SizzleDestination(val label: String) {
-    KITCHEN("Kitchen Live"),
-    COACHING("Coach Loop"),
+    KITCHEN("Kitchen"),
+    COACHING("Coach"),
     XRAY("AI X-Ray"),
-    EVAL_BENCH("Eval Bench")
+    EVAL_BENCH("Evals")
 }
