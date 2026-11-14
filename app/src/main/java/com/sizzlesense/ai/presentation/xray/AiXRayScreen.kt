@@ -1,10 +1,12 @@
 package com.sizzlesense.ai.presentation.xray
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -37,14 +39,21 @@ fun AiXRayScreen(
 ) {
     val resp = state.latestCoachingResponse
     if (resp == null) {
-        EmptyXRayTraceState()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = SizzleTheme.spacing.md)
+        ) {
+            EmptyXRayTraceState()
+        }
         return
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(top = SizzleTheme.spacing.md),
         verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.md)
     ) {
         Stage1PhysicalObservationCard(

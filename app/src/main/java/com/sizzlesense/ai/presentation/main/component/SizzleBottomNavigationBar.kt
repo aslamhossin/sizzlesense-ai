@@ -1,10 +1,12 @@
 package com.sizzlesense.ai.presentation.main.component
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -19,26 +21,32 @@ fun SizzleBottomNavigationBar(
     activeDestination: SizzleDestination,
     onDestinationSelected: (SizzleDestination) -> Unit
 ) {
-    NavigationBar(
-        containerColor = SizzleTheme.colors.surfacePrimary
-    ) {
-        SizzleDestination.entries.forEach { destination ->
-            NavigationBarItem(
-                selected = activeDestination == destination,
-                onClick = { onDestinationSelected(destination) },
-                icon = {
-                    Icon(
-                        imageVector = destination.toIcon(),
-                        contentDescription = destination.label
-                    )
-                },
-                label = {
-                    Text(
-                        text = destination.label,
-                        maxLines = 1
-                    )
-                }
-            )
+    Column {
+        HorizontalDivider(
+            thickness = SizzleTheme.spacing.borderStroke,
+            color = SizzleTheme.colors.outlineSubtle
+        )
+        NavigationBar(
+            containerColor = SizzleTheme.colors.surfacePrimary
+        ) {
+            SizzleDestination.entries.forEach { destination ->
+                NavigationBarItem(
+                    selected = activeDestination == destination,
+                    onClick = { onDestinationSelected(destination) },
+                    icon = {
+                        Icon(
+                            imageVector = destination.toIcon(),
+                            contentDescription = destination.label
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = destination.label,
+                            maxLines = 1
+                        )
+                    }
+                )
+            }
         }
     }
 }
