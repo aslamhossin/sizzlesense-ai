@@ -7,11 +7,16 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.sizzlesense.ai.presentation.main.SizzleMainScreen
+import com.sizzlesense.ai.presentation.navigation.EvalBenchEntry
 import com.sizzlesense.ai.presentation.theme.SizzleSenseTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var evalBenchEntry: EvalBenchEntry
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,7 +26,9 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             SizzleSenseTheme {
-                SizzleMainScreen()
+                SizzleMainScreen(
+                    evalBenchContent = { evalBenchEntry.Content() }
+                )
             }
         }
     }

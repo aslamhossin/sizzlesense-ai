@@ -14,13 +14,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.presentation.main.component.SizzleBottomNavigationBar
 import com.sizzlesense.ai.presentation.main.component.SizzleTopAppBar
-import com.sizzlesense.ai.presentation.navigation.SizzleDestination
 import com.sizzlesense.ai.presentation.navigation.SizzleNavGraph
 import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SizzleMainScreen(
+    evalBenchContent: @Composable () -> Unit = {},
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -32,22 +32,28 @@ fun SizzleMainScreen(
         containerColor = SizzleTheme.colors.backgroundPrimary,
         topBar = {
             SizzleTopAppBar(
-                activeDestination = state.activeDestination,
-                attemptState = state,
-                showAttemptSelector = state.activeDestination != SizzleDestination.EVAL_BENCH,
+                state = state,
                 onAttemptSelected = { attempt ->
                     onIntent(MainUiIntent.SelectAttemptNumber(attempt))
+                },
+                onOpenDeveloperEvals = {
+                    onIntent(MainUiIntent.OpenDeveloperEvals)
+                },
+                onCloseDeveloperEvals = {
+                    onIntent(MainUiIntent.CloseDeveloperEvals)
                 },
                 scrollBehavior = scrollBehavior
             )
         },
         bottomBar = {
-            SizzleBottomNavigationBar(
-                activeDestination = state.activeDestination,
-                onDestinationSelected = { destination ->
-                    onIntent(MainUiIntent.SelectDestination(destination))
-                }
-            )
+            if (!state.isDeveloperEvalsOpen) {
+                SizzleBottomNavigationBar(
+                    activeDestination = state.activeDestination,
+                    onDestinationSelected = { destination ->
+                        onIntent(MainUiIntent.SelectDestination(destination))
+                    }
+                )
+            }
         }
     ) { innerPadding ->
         Box(
@@ -58,9 +64,14 @@ fun SizzleMainScreen(
         ) {
             SizzleNavGraph(
                 activeDestination = state.activeDestination,
+                isDeveloperEvalsOpen = state.isDeveloperEvalsOpen,
                 onDestinationSelected = { destination ->
                     onIntent(MainUiIntent.SelectDestination(destination))
                 },
+                onCloseDeveloperEvals = {
+                    onIntent(MainUiIntent.CloseDeveloperEvals)
+                },
+                evalBenchContent = evalBenchContent,
                 modifier = Modifier.fillMaxSize()
             )
         }

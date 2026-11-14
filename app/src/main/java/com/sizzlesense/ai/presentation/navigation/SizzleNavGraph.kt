@@ -9,20 +9,29 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.sizzlesense.ai.presentation.coaching.CoachingRoute
-import com.sizzlesense.ai.presentation.evalbench.EvalBenchRoute
 import com.sizzlesense.ai.presentation.kitchen.KitchenRoute
 import com.sizzlesense.ai.presentation.xray.AiXRayRoute
 
 @Composable
 fun SizzleNavGraph(
     activeDestination: SizzleDestination,
+    isDeveloperEvalsOpen: Boolean,
     onDestinationSelected: (SizzleDestination) -> Unit,
+    onCloseDeveloperEvals: () -> Unit,
+    evalBenchContent: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val backStack = rememberNavBackStack(SizzleRoute.Kitchen)
 
-    LaunchedEffect(activeDestination) {
-        val targetRoute = SizzleRoute.fromDestination(activeDestination)
+    LaunchedEffect(activeDestination, isDeveloperEvalsOpen) {
+        if (!isDeveloperEvalsOpen) {
+            backStack.removeAll { it == SizzleRoute.EvalBench }
+        }
+        val targetRoute = if (isDeveloperEvalsOpen) {
+            SizzleRoute.EvalBench
+        } else {
+            SizzleRoute.fromDestination(activeDestination)
+        }
         if (backStack.lastOrNull() != targetRoute) {
             backStack.removeAll { it == targetRoute }
             backStack.add(targetRoute)
@@ -37,10 +46,12 @@ fun SizzleNavGraph(
         ),
         onBack = {
             if (backStack.size > 1) {
-                backStack.removeLastOrNull()
-                val previousRoute = backStack.lastOrNull() as? SizzleRoute
-                if (previousRoute != null) {
-                    onDestinationSelected(previousRoute.toDestination())
+                val removedRoute = backStack.removeLastOrNull()
+                if (removedRoute == SizzleRoute.EvalBench) {
+                    onCloseDeveloperEvals()
+                } else {
+                    val previousRoute = backStack.lastOrNull() as? SizzleRoute
+                    previousRoute?.toDestinationOrNull()?.let(onDestinationSelected)
                 }
             }
         },
@@ -59,7 +70,7 @@ fun SizzleNavGraph(
                 AiXRayRoute()
             }
             entry<SizzleRoute.EvalBench> {
-                EvalBenchRoute()
+                evalBenchContent()
             }
         }
     )

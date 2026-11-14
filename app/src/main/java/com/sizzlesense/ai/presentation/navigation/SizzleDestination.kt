@@ -15,9 +15,5 @@ enum class SizzleDestination(
     XRAY(
         label = "AI X-Ray",
         topBarSubtitle = "SizzleSense AI • Reasoning Trace"
-    ),
-    EVAL_BENCH(
-        label = "Evals",
-        topBarSubtitle = "SizzleSense AI • Quality Benchmark"
     )
 }

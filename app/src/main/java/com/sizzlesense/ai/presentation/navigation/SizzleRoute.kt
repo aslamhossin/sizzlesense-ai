@@ -18,11 +18,11 @@ sealed interface SizzleRoute : NavKey {
     @Serializable
     data object EvalBench : SizzleRoute
 
-    fun toDestination(): SizzleDestination = when (this) {
+    fun toDestinationOrNull(): SizzleDestination? = when (this) {
         Kitchen -> SizzleDestination.KITCHEN
         Coaching -> SizzleDestination.COACHING
         AiXRay -> SizzleDestination.XRAY
-        EvalBench -> SizzleDestination.EVAL_BENCH
+        EvalBench -> null
     }
 
     companion object {
@@ -30,7 +30,6 @@ sealed interface SizzleRoute : NavKey {
             SizzleDestination.KITCHEN -> Kitchen
             SizzleDestination.COACHING -> Coaching
             SizzleDestination.XRAY -> AiXRay
-            SizzleDestination.EVAL_BENCH -> EvalBench
         }
     }
 }

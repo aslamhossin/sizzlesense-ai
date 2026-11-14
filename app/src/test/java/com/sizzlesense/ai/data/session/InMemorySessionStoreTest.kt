@@ -138,10 +138,19 @@ class InMemorySessionStoreTest {
     }
 
     @Test
-    fun sizzleRoute_mapsRoundTripWithSizzleDestination() {
+    fun sizzleRoute_mapsRoundTripWithUserDestinationsAndExcludesEvalBenchTab() {
+        assertEquals(
+            listOf(
+                SizzleDestination.KITCHEN,
+                SizzleDestination.COACHING,
+                SizzleDestination.XRAY
+            ),
+            SizzleDestination.entries
+        )
         SizzleDestination.entries.forEach { destination ->
             val route = SizzleRoute.fromDestination(destination)
-            assertEquals(destination, route.toDestination())
+            assertEquals(destination, route.toDestinationOrNull())
         }
+        assertNull(SizzleRoute.EvalBench.toDestinationOrNull())
     }
 }

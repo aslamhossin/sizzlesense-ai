@@ -57,7 +57,10 @@ class AiXRayAndMainViewModelTest {
     fun mainViewModel_managesNavigationDestinationAndAttemptMasteryHistory() {
         runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
-            val viewModel = MainViewModel(sessionStore = sessionStore)
+            val viewModel = MainViewModel(
+                sessionStore = sessionStore,
+                isDeveloperEvalsEnabled = true
+            )
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
 
             viewModel.onIntent(MainUiIntent.SelectDestination(SizzleDestination.XRAY))
@@ -76,6 +79,50 @@ class AiXRayAndMainViewModelTest {
             )
             sessionStore.recordCoachingResponse(attempt3Response)
             assertTrue(viewModel.uiState.value.completedAttemptNumbers.contains(3))
+
+            collectorJob.cancel()
+        }
+    }
+
+    @Test
+    fun mainViewModel_opensAndClosesDeveloperEvalsWhenDebugEnabled() {
+        runTest(mainDispatcherRule.testDispatcher) {
+            val sessionStore = InMemorySessionStore()
+            val viewModel = MainViewModel(
+                sessionStore = sessionStore,
+                isDeveloperEvalsEnabled = true
+            )
+            val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
+
+            assertTrue(viewModel.uiState.value.isDeveloperEvalsEnabled)
+            assertFalse(viewModel.uiState.value.isDeveloperEvalsOpen)
+
+            viewModel.onIntent(MainUiIntent.SelectDestination(SizzleDestination.COACHING))
+            viewModel.onIntent(MainUiIntent.OpenDeveloperEvals)
+            assertTrue(viewModel.uiState.value.isDeveloperEvalsOpen)
+            assertEquals(SizzleDestination.COACHING, viewModel.uiState.value.activeDestination)
+
+            viewModel.onIntent(MainUiIntent.CloseDeveloperEvals)
+            assertFalse(viewModel.uiState.value.isDeveloperEvalsOpen)
+            assertEquals(SizzleDestination.COACHING, viewModel.uiState.value.activeDestination)
+
+            collectorJob.cancel()
+        }
+    }
+
+    @Test
+    fun mainViewModel_blocksDeveloperEvalsWhenDisabledInRelease() {
+        runTest(mainDispatcherRule.testDispatcher) {
+            val sessionStore = InMemorySessionStore()
+            val viewModel = MainViewModel(
+                sessionStore = sessionStore,
+                isDeveloperEvalsEnabled = false
+            )
+            val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
+
+            assertFalse(viewModel.uiState.value.isDeveloperEvalsEnabled)
+            viewModel.onIntent(MainUiIntent.OpenDeveloperEvals)
+            assertFalse(viewModel.uiState.value.isDeveloperEvalsOpen)
 
             collectorJob.cancel()
         }

@@ -2,7 +2,6 @@ package com.sizzlesense.ai.presentation.main.component
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Videocam
@@ -55,5 +54,4 @@ private fun SizzleDestination.toIcon(): ImageVector = when (this) {
     SizzleDestination.KITCHEN -> Icons.Default.Videocam
     SizzleDestination.COACHING -> Icons.Default.School
     SizzleDestination.XRAY -> Icons.Default.Psychology
-    SizzleDestination.EVAL_BENCH -> Icons.Default.Analytics
 }
