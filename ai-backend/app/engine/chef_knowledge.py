@@ -35,7 +35,6 @@ class AttemptScenarioPreset(BaseModel):
     """A single attempt scenario (Attempt 1, 2, or 3) for a specific learner archetype."""
 
     attempt_number: int = Field(..., ge=1, le=3)
-    synthetic_frame_regime: str
     acoustic_signature: AcousticSizzleSignature
     learner_reflection: str
     observed_visual_fact: str
@@ -138,7 +137,6 @@ ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
         attempts={
             1: AttemptScenarioPreset(
                 attempt_number=1,
-                synthetic_frame_regime="pale_steaming",
                 acoustic_signature=AcousticSizzleSignature.WET_STEAM_BUBBLE,
                 learner_reflection=(
                     "I kept stirring the onions for 8 minutes on medium heat, but they stayed pale and watery instead of browning."
@@ -148,7 +146,6 @@ ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
             ),
             2: AttemptScenarioPreset(
                 attempt_number=2,
-                synthetic_frame_regime="golden_maillard",
                 acoustic_signature=AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE,
                 learner_reflection=(
                     "I spread the onions out and waited until the wet bubbling sound turned into a crisp sizzle before stirring!"
@@ -158,7 +155,6 @@ ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
             ),
             3: AttemptScenarioPreset(
                 attempt_number=3,
-                synthetic_frame_regime="golden_maillard",
                 acoustic_signature=AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE,
                 learner_reflection=(
                     "As soon as I heard the sizzle sharpen after moisture cooked off, I adjusted heat to keep steady golden browning without burning."
@@ -183,7 +179,6 @@ ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
         attempts={
             1: AttemptScenarioPreset(
                 attempt_number=1,
-                synthetic_frame_regime="pale_steaming",
                 acoustic_signature=AcousticSizzleSignature.SILENT_COLD,
                 learner_reflection=(
                     "It started steaming a lot right away so I turned the heat way down so it wouldn't burn, and then nothing really browned."
@@ -193,7 +188,6 @@ ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
             ),
             2: AttemptScenarioPreset(
                 attempt_number=2,
-                synthetic_frame_regime="golden_maillard",
                 acoustic_signature=AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE,
                 learner_reflection=(
                     "I saw the white steam again, recognized it was just water escaping, and kept the heat steady until the edges turned gold."
@@ -203,7 +197,6 @@ ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
             ),
             3: AttemptScenarioPreset(
                 attempt_number=3,
-                synthetic_frame_regime="golden_maillard",
                 acoustic_signature=AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE,
                 learner_reflection=(
                     "I used the steady applause sizzle sound and clear oil shimmer to ride medium-high heat confidently, then eased down once golden."
@@ -228,7 +221,6 @@ ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
         attempts={
             1: AttemptScenarioPreset(
                 attempt_number=1,
-                synthetic_frame_regime="pale_steaming",
                 acoustic_signature=AcousticSizzleSignature.WET_STEAM_BUBBLE,
                 learner_reflection=(
                     "I sautéed the onions for 5 minutes just like the recipe said and they browned really nicely!"
@@ -238,7 +230,6 @@ ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
             ),
             2: AttemptScenarioPreset(
                 attempt_number=2,
-                synthetic_frame_regime="golden_maillard",
                 acoustic_signature=AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE,
                 learner_reflection=(
                     "I ignored the 5-minute timer this time and waited until I saw actual amber-gold color on the edges and a light brown glaze on the pan."
@@ -248,7 +239,6 @@ ONION_LEARNER_ARCHETYPES: Dict[str, LearnerArchetypeScenario] = {
             ),
             3: AttemptScenarioPreset(
                 attempt_number=3,
-                synthetic_frame_regime="golden_maillard",
                 acoustic_signature=AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE,
                 learner_reflection=(
                     "Now I can immediately tell the difference between sweaty translucent onions and true nutty golden browning by sight and smell."

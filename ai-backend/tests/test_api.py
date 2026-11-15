@@ -14,8 +14,8 @@ from app.schemas.domain import CognitiveCoachingResponse, SessionAnalyzeRequest
 from app.vision.frame_analyzer import (
     TapoLanDiscovery,
     TapoRtspUrlBuilder,
-    generate_synthetic_kitchen_frame_base64,
 )
+from tests.test_helpers import generate_synthetic_kitchen_frame_base64
 
 client = TestClient(app)
 

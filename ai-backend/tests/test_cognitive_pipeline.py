@@ -19,8 +19,8 @@ from app.schemas.domain import (
     PerceptionGapLevel,
     SessionAnalyzeRequest,
 )
-from app.vision.frame_analyzer import generate_synthetic_kitchen_frame_base64
 from tests.conftest import build_realistic_gemini_response_json
+from tests.test_helpers import generate_synthetic_kitchen_frame_base64
 
 
 @pytest.mark.asyncio

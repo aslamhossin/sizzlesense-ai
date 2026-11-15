@@ -9,7 +9,7 @@ from app.audio.sizzle_analyzer import (
 )
 from app.main import app
 from app.schemas.domain import AcousticSizzleSignature
-from app.vision.frame_analyzer import generate_synthetic_kitchen_frame_base64
+from tests.test_helpers import generate_synthetic_kitchen_frame_base64
 
 client = TestClient(app)
 

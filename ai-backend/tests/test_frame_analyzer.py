@@ -9,8 +9,8 @@ from app.vision.frame_analyzer import (
     KitchenFrameAnalyzer,
     TapoLanDiscovery,
     TapoRtspUrlBuilder,
-    generate_synthetic_kitchen_frame_base64,
 )
+from tests.test_helpers import generate_synthetic_kitchen_frame_base64
 
 
 def test_tapo_rtsp_url_builder_standard_and_substream():
