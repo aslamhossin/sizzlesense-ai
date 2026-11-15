@@ -4,6 +4,7 @@ import com.sizzlesense.ai.data.repository.SizzleCognitiveRepository
 import com.sizzlesense.ai.data.session.InMemorySessionStore
 import com.sizzlesense.ai.domain.repository.CameraDiscoveryGateway
 import com.sizzlesense.ai.domain.repository.EvaluationBenchmarkGateway
+import com.sizzlesense.ai.domain.repository.LearnerHistoryGateway
 import com.sizzlesense.ai.domain.repository.LiveTapoCameraGateway
 import com.sizzlesense.ai.domain.repository.SessionAnalysisGateway
 import com.sizzlesense.ai.domain.repository.SessionStore
@@ -43,6 +44,12 @@ abstract class DataModule {
     abstract fun bindCameraDiscoveryGateway(
         impl: SizzleCognitiveRepository
     ): CameraDiscoveryGateway
+
+    @Binds
+    @Singleton
+    abstract fun bindLearnerHistoryGateway(
+        impl: SizzleCognitiveRepository
+    ): LearnerHistoryGateway
 
     @Binds
     @Singleton

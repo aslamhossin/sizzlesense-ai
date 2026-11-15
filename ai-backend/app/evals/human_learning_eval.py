@@ -1,4 +1,4 @@
-"""Automated Human Learning Evaluation Suite (`EvalBench`)."""
+"""Automated Human Learning Evaluation Suite (`EvalBench`) running live Gemini coaching."""
 
 from __future__ import annotations
 
@@ -6,14 +6,23 @@ import re
 from typing import List
 from pydantic import BaseModel, Field
 
+from app.audio.sizzle_analyzer import generate_synthetic_sizzle_wav_base64
 from app.engine.chef_knowledge import ONION_LEARNER_ARCHETYPES
 from app.engine.cognitive_pipeline import CognitiveCoachingPipeline
 from app.engine.learner_store import LearnerMemoryStore
 from app.schemas.domain import (
+    AcousticSizzleSignature,
     BehavioralTransferStatus,
+    PerceptionGapLevel,
     SessionAnalyzeRequest,
 )
-from app.vision.frame_analyzer import generate_synthetic_kitchen_frame_base64
+
+_SIGNATURE_TO_WAV_REGIME = {
+    AcousticSizzleSignature.SILENT_COLD: "silent_cold",
+    AcousticSizzleSignature.WET_STEAM_BUBBLE: "wet_steam_bubble",
+    AcousticSizzleSignature.STEADY_APPLAUSE_SIZZLE: "steady_applause_sizzle",
+    AcousticSizzleSignature.AGGRESSIVE_POPPING_BURN: "aggressive_popping_burn",
+}
 
 
 class EvalCaseScore(BaseModel):
@@ -31,7 +40,7 @@ class EvalCaseScore(BaseModel):
 
 
 class EvalSuiteReport(BaseModel):
-    """Aggregate benchmark report across all synthetic learners and attempts."""
+    """Aggregate benchmark report across all evaluated learners and attempts."""
 
     total_sessions_evaluated: int
     perception_gap_detection_score: float = Field(..., ge=0.0, le=1.0)
@@ -50,8 +59,29 @@ def score_sensory_grounding_with_penalty(coaching_message: str) -> float:
     """
     text = coaching_message.lower()
 
-    visual_cues = ["watch", "look", "golden", "amber", "shimmer", "translucent", "crust", "fond"]
-    auditory_cues = ["listen", "sizzle", "sound", "bubbling", "hiss", "quiet", "applause"]
+    visual_cues = [
+        "watch",
+        "look",
+        "golden",
+        "amber",
+        "shimmer",
+        "translucent",
+        "crust",
+        "fond",
+        "steam",
+        "oil",
+        "smoke",
+    ]
+    auditory_cues = [
+        "listen",
+        "sizzle",
+        "sound",
+        "bubbling",
+        "hiss",
+        "quiet",
+        "applause",
+        "crackle",
+    ]
 
     has_visual = any(w in text for w in visual_cues)
     has_auditory = any(w in text for w in auditory_cues)
@@ -62,7 +92,6 @@ def score_sensory_grounding_with_penalty(coaching_message: str) -> float:
     if has_auditory:
         score += 0.5
 
-    # Anti-pattern penalty: prescriptive minute rules without sensory grounding
     if re.search(r"cook for (exactly )?\d+\s*minutes", text):
         score -= 0.75
 
@@ -70,7 +99,7 @@ def score_sensory_grounding_with_penalty(coaching_message: str) -> float:
 
 
 class HumanLearningEvalRunner:
-    """Runs the 10-session Human Learning Evaluation Benchmark."""
+    """Runs the 10-session Human Learning Evaluation Benchmark against live Gemini + Audio FFT."""
 
     async def run_full_benchmark(self) -> EvalSuiteReport:
         store = LearnerMemoryStore()
@@ -78,13 +107,13 @@ class HumanLearningEvalRunner:
         case_results: List[EvalCaseScore] = []
 
         # 1. Evaluate all 3 Learner Archetypes across Attempts 1 -> 2 -> 3 (9 sessions)
+        # No archetype_hint or acoustic_hint leakage: pipeline must infer from reflection + WAV FFT + history.
         for archetype_id, archetype in ONION_LEARNER_ARCHETYPES.items():
             learner_id = f"eval_{archetype_id}"
             for attempt_num in [1, 2, 3]:
                 preset = archetype.attempts[attempt_num]
-                frame_b64 = generate_synthetic_kitchen_frame_base64(
-                    preset.synthetic_frame_regime
-                )
+                wav_regime = _SIGNATURE_TO_WAV_REGIME[preset.acoustic_signature]
+                wav_b64 = generate_synthetic_sizzle_wav_base64(wav_regime)
 
                 response = await pipeline.analyze_session(
                     SessionAnalyzeRequest(
@@ -92,9 +121,7 @@ class HumanLearningEvalRunner:
                         dish_id="sauteed_onions",
                         attempt_number=attempt_num,
                         learner_reflection=preset.learner_reflection,
-                        archetype_hint=archetype_id,
-                        keyframe_base64_list=[frame_b64],
-                        acoustic_hint=preset.acoustic_signature,
+                        audio_wav_base64=wav_b64,
                     )
                 )
 
@@ -106,9 +133,11 @@ class HumanLearningEvalRunner:
                     response.stage2_learner_state.learner_archetype_id == archetype_id
                 )
                 restraint_ok = (
-                    bool(response.stage3_teaching_decision.selected_primary_issue)
+                    bool(response.stage3_teaching_decision.selected_primary_issue.strip())
                     and len(response.stage3_teaching_decision.deliberately_omitted_issues)
                     >= 1
+                    and len(response.stage3_teaching_decision.candidate_issues_detected)
+                    >= 2
                 )
                 sensory_score = score_sensory_grounding_with_penalty(
                     response.stage4_sensory_coaching.coaching_message
@@ -118,12 +147,15 @@ class HumanLearningEvalRunner:
                     transfer_ok = (
                         response.stage2_learner_state.transfer_status
                         == BehavioralTransferStatus.INITIAL_BASELINE
+                        and response.stage2_learner_state.conceptual_shift_verified
+                        is False
                     )
                 else:
                     transfer_ok = (
                         response.stage2_learner_state.transfer_status
                         == BehavioralTransferStatus.CONCEPT_ADOPTED
                         and response.stage2_learner_state.conceptual_shift_verified
+                        is True
                     )
 
                 case_results.append(
@@ -137,23 +169,23 @@ class HumanLearningEvalRunner:
                         sensory_grounding_score=sensory_score,
                         transfer_tracking_passed=transfer_ok,
                         summary_note=(
-                            f"Primary taught: '{response.stage3_teaching_decision.selected_primary_issue}' | "
+                            f"Model: {response.reasoning_model_used} | "
+                            f"Primary: '{response.stage3_teaching_decision.selected_primary_issue}' | "
                             f"Transfer: {response.stage2_learner_state.transfer_status.value}"
                         ),
                     )
                 )
 
-        # 2. Evaluate Negative Control Case #10: Lucky execution via blind timer (must NOT mark conceptual_shift_verified)
-        golden_frame = generate_synthetic_kitchen_frame_base64("golden_maillard")
+        # 2. Negative Control Case #10: Lucky execution via blind timer (honest assertions, zero hardcoded True)
         await pipeline.analyze_session(
             SessionAnalyzeRequest(
                 learner_id="eval_negative_control",
                 dish_id="sauteed_onions",
                 attempt_number=1,
                 learner_reflection="I cooked for 5 minutes and they looked done.",
-                keyframe_base64_list=[
-                    generate_synthetic_kitchen_frame_base64("pale_steaming")
-                ],
+                audio_wav_base64=generate_synthetic_sizzle_wav_base64(
+                    "wet_steam_bubble"
+                ),
             )
         )
         neg_resp = await pipeline.analyze_session(
@@ -162,8 +194,30 @@ class HumanLearningEvalRunner:
                 dish_id="sauteed_onions",
                 attempt_number=2,
                 learner_reflection="I just set my phone timer for 11 minutes without looking at the pan.",
-                keyframe_base64_list=[golden_frame],
+                audio_wav_base64=generate_synthetic_sizzle_wav_base64(
+                    "steady_applause_sizzle"
+                ),
             )
+        )
+        neg_gap_ok = (
+            neg_resp.stage1_physical_observation.perception_gap_level
+            in (
+                PerceptionGapLevel.MODERATE_DRIFT,
+                PerceptionGapLevel.CRITICAL_BLINDSPOT,
+            )
+            and bool(
+                neg_resp.stage1_physical_observation.perception_gap_explanation.strip()
+            )
+        )
+        neg_root_ok = (
+            neg_resp.stage2_learner_state.learner_archetype_id
+            == "perception_blindspot"
+        )
+        neg_restraint_ok = (
+            bool(neg_resp.stage3_teaching_decision.selected_primary_issue.strip())
+            and len(neg_resp.stage3_teaching_decision.deliberately_omitted_issues)
+            >= 1
+            and len(neg_resp.stage3_teaching_decision.candidate_issues_detected) >= 2
         )
         neg_transfer_ok = (
             neg_resp.stage2_learner_state.transfer_status
@@ -175,17 +229,18 @@ class HumanLearningEvalRunner:
                 case_id="negative_control_lucky_timer_attempt_2",
                 archetype_id="perception_blindspot",
                 attempt_number=2,
-                perception_gap_passed=True,
-                root_cause_passed=True,
-                single_issue_restraint_passed=len(
-                    neg_resp.stage3_teaching_decision.deliberately_omitted_issues
-                )
-                >= 1,
+                perception_gap_passed=neg_gap_ok,
+                root_cause_passed=neg_root_ok,
+                single_issue_restraint_passed=neg_restraint_ok,
                 sensory_grounding_score=score_sensory_grounding_with_penalty(
                     neg_resp.stage4_sensory_coaching.coaching_message
                 ),
                 transfer_tracking_passed=neg_transfer_ok,
-                summary_note="Correctly distinguished lucky timer execution from genuine sensory concept adoption.",
+                summary_note=(
+                    f"Model: {neg_resp.reasoning_model_used} | "
+                    f"Archetype: {neg_resp.stage2_learner_state.learner_archetype_id} | "
+                    f"Transfer: {neg_resp.stage2_learner_state.transfer_status.value}"
+                ),
             )
         )
 

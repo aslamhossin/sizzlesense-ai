@@ -23,42 +23,85 @@ fun Stage1PhysicalObservationCard(
         subtitle = DisplayLabelFormatter.formatModelSource(visionModelUsed),
         icon = Icons.Default.Visibility
     ) {
+        if (stage1.learnerStatedBelief.isNotBlank()) {
+            LabeledDetailRow(
+                label = "Learner Belief",
+                value = stage1.learnerStatedBelief
+            )
+        }
         LabeledDetailRow(
             label = "Observation: ${DisplayLabelFormatter.formatPerceptionGap(stage1.perceptionGapLevel)}",
             value = stage1.perceptionGapExplanation
         )
-        stage1.cvMetrics?.let { cv ->
+        val cv = stage1.cvMetrics
+        if (cv != null) {
             MetricPillGrid(
                 items = listOf(
                     MetricTileItem("Visual State", DisplayLabelFormatter.formatVisualRegime(cv.dominantVisualRegime)),
                     MetricTileItem("Browning", DisplayLabelFormatter.formatRatioPercent(cv.maillardBrowningRatio)),
                     MetricTileItem("Surface Moisture", DisplayLabelFormatter.formatRatioPercent(cv.surfaceMoistureIndex)),
-                    MetricTileItem("Char", DisplayLabelFormatter.formatRatioPercent(cv.charBurnRatio))
+                    MetricTileItem("Char", DisplayLabelFormatter.formatRatioPercent(cv.charBurnRatio)),
+                    MetricTileItem("Mean Luminance", "${cv.meanLuminance.roundToInt()}")
                 )
+            )
+        } else {
+            LabeledDetailRow(
+                label = "Camera Vision",
+                value = "No Camera Frame Captured"
             )
         }
         stage1.acousticMetrics?.let { audio ->
             MetricPillGrid(
                 items = listOf(
                     MetricTileItem("Sound Pattern", DisplayLabelFormatter.formatAcousticSignature(audio.inferredAcousticSignature)),
-                    MetricTileItem("Peak Frequency", "${audio.spectralCentroidHz.roundToInt()} Hz"),
+                    MetricTileItem("Peak Frequency", "${audio.dominantFrequencyHz.roundToInt()} Hz"),
+                    MetricTileItem("Spectral Centroid", "${audio.spectralCentroidHz.roundToInt()} Hz"),
                     MetricTileItem("Crisp Sizzle", DisplayLabelFormatter.formatRatioPercent(audio.highFreqSizzleRatio)),
                     MetricTileItem("Wet Bubble", DisplayLabelFormatter.formatRatioPercent(audio.lowFreqBubbleRatio)),
                     MetricTileItem("Audio Level", "${audio.rmsEnergyDb.roundToInt()} dBFS")
                 )
             )
         }
-        Text(
-            text = "Pan Physics",
-            style = SizzleTheme.typography.labelMedium,
-            color = SizzleTheme.colors.brandPrimary
-        )
-        stage1.inferredPhysicalStates.forEach { stateLine ->
-            Text(
-                text = "• $stateLine",
-                style = SizzleTheme.typography.bodySmall,
-                color = SizzleTheme.colors.textPrimary
+        if (stage1.observedTimelineFacts.isNotEmpty()) {
+            ObservationBulletSection(
+                title = "Observed Timeline",
+                lines = stage1.observedTimelineFacts.map { fact ->
+                    "${fact.timestamp} (${DisplayLabelFormatter.formatAcousticSignature(fact.acousticSignature)}): ${fact.visualObservation}"
+                }
             )
         }
+        if (stage1.inferredPhysicalStates.isNotEmpty()) {
+            ObservationBulletSection(
+                title = "Pan Physics",
+                lines = stage1.inferredPhysicalStates
+            )
+        }
+        if (stage1.environmentalUncertainties.isNotEmpty()) {
+            ObservationBulletSection(
+                title = "Uncertainties",
+                lines = stage1.environmentalUncertainties,
+                isSecondary = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun ObservationBulletSection(
+    title: String,
+    lines: List<String>,
+    isSecondary: Boolean = false
+) {
+    Text(
+        text = title,
+        style = SizzleTheme.typography.labelMedium,
+        color = SizzleTheme.colors.brandPrimary
+    )
+    lines.forEach { line ->
+        Text(
+            text = "• $line",
+            style = SizzleTheme.typography.bodySmall,
+            color = if (isSecondary) SizzleTheme.colors.textSecondary else SizzleTheme.colors.textPrimary
+        )
     }
 }

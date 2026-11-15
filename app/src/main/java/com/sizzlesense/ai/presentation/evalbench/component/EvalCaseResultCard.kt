@@ -11,6 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.sizzlesense.ai.domain.model.eval.EvalCaseScore
+import com.sizzlesense.ai.presentation.common.component.MetricPillGrid
+import com.sizzlesense.ai.presentation.common.component.MetricTileItem
 import com.sizzlesense.ai.presentation.common.format.DisplayLabelFormatter
 import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
@@ -25,7 +27,7 @@ fun EvalCaseResultCard(item: EvalCaseScore) {
     ) {
         Column(
             modifier = Modifier.padding(SizzleTheme.spacing.md),
-            verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xxs)
+            verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.xs)
         ) {
             Text(
                 text = "${DisplayLabelFormatter.formatEvalCaseTitle(item.caseId)} • Attempt ${item.attemptNumber}",
@@ -37,6 +39,15 @@ fun EvalCaseResultCard(item: EvalCaseScore) {
                 text = DisplayLabelFormatter.formatEvalNote(item.summaryNote),
                 style = SizzleTheme.typography.bodySmall,
                 color = SizzleTheme.colors.textPrimary
+            )
+            MetricPillGrid(
+                items = listOf(
+                    MetricTileItem("Blindspot", if (item.perceptionGapPassed) "Pass" else "Miss"),
+                    MetricTileItem("Root Cause", if (item.rootCausePassed) "Pass" else "Miss"),
+                    MetricTileItem("Restraint", if (item.singleIssueRestraintPassed) "Pass" else "Miss"),
+                    MetricTileItem("Sensory", DisplayLabelFormatter.formatRatioPercent(item.sensoryGroundingScore)),
+                    MetricTileItem("Transfer", if (item.transferTrackingPassed) "Pass" else "Miss")
+                )
             )
         }
     }

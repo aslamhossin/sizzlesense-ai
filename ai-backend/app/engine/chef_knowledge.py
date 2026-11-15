@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Dict, List, Tuple
 from pydantic import BaseModel, Field
 
-from app.schemas.domain import AcousticSizzleSignature, PerceptionGapLevel
+from app.schemas.domain import (
+    AcousticSizzleSignature,
+    ExpertTeachingDecision,
+    OmittedIssue,
+    PerceptionGapLevel,
+)
 
 
 class ChefPrinciple(BaseModel):
@@ -260,6 +265,24 @@ class ChefKnowledgeGraph:
     """Queries and prioritizes principles from the Chef Causal Knowledge Graph."""
 
     @staticmethod
+    def catalog_for_prompt() -> List[Dict[str, object]]:
+        """Returns a compact causal-ordered catalog of chef principles for Gemini grounding."""
+        return [
+            {
+                "id": p.id,
+                "title": p.title,
+                "causal_rank": p.causal_rank,
+                "physics_explanation": p.physics_explanation,
+                "visual_cue": p.visual_cue,
+                "auditory_cue": p.auditory_cue,
+                "olfactory_tactile_cue": p.olfactory_tactile_cue,
+            }
+            for p in sorted(
+                CHEF_PRINCIPLES_REGISTRY.values(), key=lambda item: item.causal_rank
+            )
+        ]
+
+    @staticmethod
     def select_primary_and_omitted(
         candidate_principle_ids: List[str],
     ) -> Tuple[ChefPrinciple, List[ChefPrinciple]]:
@@ -275,3 +298,81 @@ class ChefKnowledgeGraph:
         primary = sorted_principles[0]
         omitted = sorted_principles[1:]
         return primary, omitted
+
+    @classmethod
+    def enforce_causal_restraint(
+        cls,
+        decision: ExpertTeachingDecision,
+        conceptual_shift_verified: bool,
+    ) -> ExpertTeachingDecision:
+        """
+        Ensures single-issue pedagogical restraint and causal-rank priority against the
+        Chef Knowledge Graph when multiple known principles appear in candidate issues.
+        """
+        if conceptual_shift_verified:
+            return decision
+
+        recognized_ids: List[str] = []
+        if decision.target_chef_principle_id in CHEF_PRINCIPLES_REGISTRY:
+            recognized_ids.append(decision.target_chef_principle_id)
+
+        candidate_blob = " ".join(decision.candidate_issues_detected).lower()
+        for pid, principle in CHEF_PRINCIPLES_REGISTRY.items():
+            if pid in recognized_ids:
+                continue
+            if (
+                pid in candidate_blob
+                or principle.title.lower() in candidate_blob
+                or principle.title.split("(")[0].strip().lower() in candidate_blob
+            ):
+                recognized_ids.append(pid)
+
+        if len(recognized_ids) <= 1:
+            return decision
+
+        primary, omitted = cls.select_primary_and_omitted(recognized_ids)
+        if primary.id == decision.target_chef_principle_id:
+            return decision
+
+        existing_omitted_titles = {o.issue for o in decision.deliberately_omitted_issues}
+        updated_omitted = [
+            o
+            for o in decision.deliberately_omitted_issues
+            if o.issue != primary.title and o.issue != decision.selected_primary_issue
+        ]
+        for op in omitted:
+            if op.title not in existing_omitted_titles and op.title != primary.title:
+                updated_omitted.append(
+                    OmittedIssue(
+                        issue=op.title,
+                        suppression_reason=(
+                            f"Held back (Causal Rank {op.causal_rank}) until learner resolves "
+                            f"'{primary.title}' (Causal Rank {primary.causal_rank})."
+                        ),
+                    )
+                )
+
+        if not updated_omitted:
+            updated_omitted.append(
+                OmittedIssue(
+                    issue=decision.selected_primary_issue,
+                    suppression_reason=(
+                        f"Superseded by higher-leverage causal prerequisite '{primary.title}' "
+                        f"(Causal Rank {primary.causal_rank})."
+                    ),
+                )
+            )
+
+        updated_candidates = list(
+            dict.fromkeys([primary.title, *decision.candidate_issues_detected])
+        )
+        return ExpertTeachingDecision(
+            candidate_issues_detected=updated_candidates,
+            selected_primary_issue=primary.title,
+            causal_priority_rationale=(
+                f"Causal Rank {primary.causal_rank} prerequisite '{primary.title}': "
+                f"{primary.physics_explanation}"
+            ),
+            deliberately_omitted_issues=updated_omitted,
+            target_chef_principle_id=primary.id,
+        )

@@ -5,10 +5,13 @@ import com.sizzlesense.ai.data.remote.dto.coaching.CognitiveCoachingResponseDto
 import com.sizzlesense.ai.data.remote.dto.eval.EvalSuiteReportDto
 import com.sizzlesense.ai.data.remote.dto.request.SessionAnalyzeRequestDto
 import com.sizzlesense.ai.data.remote.dto.request.TapoLiveAnalyzeRequestDto
+import com.sizzlesense.ai.data.remote.dto.session.DeleteLearnerHistoryResponseDto
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
@@ -42,6 +45,12 @@ interface SizzleSenseApiService {
         @Header(HEADER_TARGET_BASE_URL) targetBaseUrl: String,
         @Body emptyBody: Map<String, String> = emptyMap()
     ): EvalSuiteReportDto
+
+    @DELETE("api/v1/learners/{learner_id}/history")
+    suspend fun deleteLearnerHistory(
+        @Header(HEADER_TARGET_BASE_URL) targetBaseUrl: String,
+        @Path("learner_id") learnerId: String
+    ): DeleteLearnerHistoryResponseDto
 
     companion object {
         const val HEADER_TARGET_BASE_URL = "X-Sizzle-Target-Base-Url"

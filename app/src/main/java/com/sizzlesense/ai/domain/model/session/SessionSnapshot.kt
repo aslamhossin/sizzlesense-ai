@@ -17,6 +17,7 @@ data class SessionSnapshot(
     val currentAttemptNumber: Int = 1,
     val learnerReflectionText: String =
         LearnerArchetypeOption.MOISTURE_BLINDNESS.presetReflections[1].orEmpty(),
+    val attemptReflections: Map<Int, String> = emptyMap(),
     val latestCoachingResponse: CognitiveCoachingResponse? = null,
     val attemptHistory: Map<Int, CognitiveCoachingResponse> = emptyMap(),
     val evalSuiteReport: EvalSuiteReport? = null

@@ -92,3 +92,31 @@ async def test_tapo_lan_discovery_falls_back_from_stale_ip_to_subnet_scan(monkey
     assert reachable is True
     assert ip == "192.168.11.14"
     assert source == "lan_scan"
+
+
+def test_rtsp_capture_error_sanitizes_embedded_credentials(monkeypatch):
+    """If ffmpeg fails, username/password embedded in the RTSP URL must never leak in the exception."""
+    import subprocess
+
+    class FakeProc:
+        returncode = 1
+        stdout = b""
+        stderr = b"Error opening input file rtsp://chef_admin:SuperSecretPass!@192.168.11.14:554/stream2: Connection refused"
+
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: FakeProc())
+
+    with pytest.raises(RuntimeError) as exc_info:
+        TapoRtspUrlBuilder.capture_live_frame_base64(
+            ip_address="192.168.11.14",
+            username="chef_admin",
+            password="SuperSecretPass!",
+        )
+    msg = str(exc_info.value)
+    assert "SuperSecretPass!" not in msg
+    assert "chef_admin" not in msg
+    assert "rtsp://***:***@" in msg
+
+
+def test_cv_analyzer_rejects_malformed_base64():
+    with pytest.raises(ValueError):
+        KitchenFrameAnalyzer.analyze_base64_frame("not_valid_base64!!!")

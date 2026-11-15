@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import com.sizzlesense.ai.domain.model.coaching.ExpertTeachingDecision
 import com.sizzlesense.ai.presentation.common.component.LabeledDetailRow
 import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
+import com.sizzlesense.ai.presentation.common.format.DisplayLabelFormatter
 import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
@@ -30,6 +31,26 @@ fun Stage3PedagogicalRestraintCard(
             label = "Primary Focus: ${stage3.selectedPrimaryIssue}",
             value = stage3.causalPriorityRationale
         )
+        if (stage3.targetChefPrincipleId.isNotBlank()) {
+            LabeledDetailRow(
+                label = "Target Principle",
+                value = DisplayLabelFormatter.toTitleCaseWords(stage3.targetChefPrincipleId)
+            )
+        }
+        if (stage3.candidateIssuesDetected.isNotEmpty()) {
+            Text(
+                text = "Candidate Issues (${stage3.candidateIssuesDetected.size})",
+                style = SizzleTheme.typography.labelMedium,
+                color = SizzleTheme.colors.brandPrimary
+            )
+            stage3.candidateIssuesDetected.forEach { issue ->
+                Text(
+                    text = "• $issue",
+                    style = SizzleTheme.typography.bodySmall,
+                    color = SizzleTheme.colors.textSecondary
+                )
+            }
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,

@@ -11,7 +11,9 @@ import com.sizzlesense.ai.data.remote.dto.coaching.CognitiveCoachingResponseDto
 import com.sizzlesense.ai.data.remote.dto.eval.EvalSuiteReportDto
 import com.sizzlesense.ai.data.remote.dto.request.SessionAnalyzeRequestDto
 import com.sizzlesense.ai.data.remote.dto.request.TapoLiveAnalyzeRequestDto
+import com.sizzlesense.ai.data.remote.dto.session.DeleteLearnerHistoryResponseDto
 import com.sizzlesense.ai.di.qualifier.IoDispatcher
+import java.net.SocketTimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -123,6 +125,16 @@ class FailoverJsonHttpClient internal constructor(
         apiService.runEvaluationBenchmark(targetBaseUrl = targetUrl)
     }
 
+    suspend fun deleteLearnerHistoryWithFailover(
+        primaryBaseUrl: String,
+        learnerId: String
+    ): AppResult<DeleteLearnerHistoryResponseDto> = executeWithFailover(primaryBaseUrl) { targetUrl ->
+        apiService.deleteLearnerHistory(
+            targetBaseUrl = targetUrl,
+            learnerId = learnerId
+        )
+    }
+
     suspend fun <RES : Any> executeWithFailover(
         primaryBaseUrl: String,
         call: suspend (targetBaseUrl: String) -> RES
@@ -155,11 +167,27 @@ class FailoverJsonHttpClient internal constructor(
             } catch (e: SerializationException) {
                 throw e
             } catch (e: HttpException) {
+                // Server responded cleanly with an HTTP error; abort failover immediately so it is never overwritten.
                 val errorBody = e.response()?.errorBody()?.string().orEmpty()
-                lastError = AppError.HttpError(
-                    statusCode = e.code(),
-                    responseBody = errorBody
+                throw AppException(
+                    AppError.HttpError(
+                        statusCode = e.code(),
+                        responseBody = errorBody
+                    )
                 )
+            } catch (e: SocketTimeoutException) {
+                // Connect timeouts indicate an unreachable host (keep failing over); read timeouts mean the server is busy.
+                if (e.message?.contains("connect", ignoreCase = true) == true) {
+                    lastError = AppError.NetworkUnavailable(
+                        e.message ?: "Endpoint $rootUrl unreachable"
+                    )
+                } else {
+                    throw AppException(
+                        AppError.Timeout(
+                            e.message ?: "Request timed out while waiting for Gemini 3 reasoning."
+                        )
+                    )
+                }
             } catch (e: Exception) {
                 lastError = AppError.NetworkUnavailable(
                     e.message ?: "Endpoint $rootUrl unreachable"

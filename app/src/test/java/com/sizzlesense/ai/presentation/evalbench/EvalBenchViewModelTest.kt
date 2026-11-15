@@ -2,10 +2,10 @@ package com.sizzlesense.ai.presentation.evalbench
 
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
-import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.session.InMemorySessionStore
 import com.sizzlesense.ai.domain.usecase.RunHumanLearningEvalUseCase
 import com.sizzlesense.ai.testing.MainDispatcherRule
+import com.sizzlesense.ai.testing.TestFixtures
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -23,8 +23,6 @@ class EvalBenchViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val fallbackDataSource = LocalFallbackCognitiveDataSource()
-
     @Test
     fun runHumanLearningEvalSuite_records10TrajectorySuiteInSessionStore() {
         runTest(mainDispatcherRule.testDispatcher) {
@@ -32,7 +30,7 @@ class EvalBenchViewModelTest {
             val viewModel = EvalBenchViewModel(
                 sessionStore = sessionStore,
                 runHumanLearningEval = RunHumanLearningEvalUseCase {
-                    AppResult.Success(fallbackDataSource.buildFallbackEvalReport())
+                    AppResult.Success(TestFixtures.buildEvalReport())
                 }
             )
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)

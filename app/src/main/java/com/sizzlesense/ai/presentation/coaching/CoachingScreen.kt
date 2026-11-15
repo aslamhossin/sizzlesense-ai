@@ -1,13 +1,7 @@
 package com.sizzlesense.ai.presentation.coaching
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -16,7 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sizzlesense.ai.presentation.coaching.component.EmptyCoachingSessionState
 import com.sizzlesense.ai.presentation.coaching.component.FiveCoreQuestionsCard
 import com.sizzlesense.ai.presentation.coaching.component.SingleIssueCoachingCard
-import com.sizzlesense.ai.presentation.common.component.DismissibleErrorBanner
+import com.sizzlesense.ai.presentation.common.component.PinnedErrorScrollColumn
 import com.sizzlesense.ai.presentation.theme.SizzleTheme
 
 @Composable
@@ -36,20 +30,10 @@ fun CoachingScreen(
     state: CoachingUiState,
     onIntent: (CoachingUiIntent) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(top = SizzleTheme.spacing.md),
-        verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.md)
+    PinnedErrorScrollColumn(
+        errorMessage = state.errorMessage,
+        onDismissError = { onIntent(CoachingUiIntent.ClearError) }
     ) {
-        state.errorMessage?.let { err ->
-            DismissibleErrorBanner(
-                errorMessage = err,
-                onDismiss = { onIntent(CoachingUiIntent.ClearError) }
-            )
-        }
-
         val resp = state.latestCoachingResponse
         if (resp == null) {
             EmptyCoachingSessionState(

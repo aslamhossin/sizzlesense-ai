@@ -12,7 +12,9 @@ data class TapoLiveAnalyzeRequestDto(
     @SerialName("learner_id") val learnerId: String = DEFAULT_TAPO_LEARNER_ID,
     @SerialName("dish_id") val dishId: String = DEFAULT_DISH_ID,
     @SerialName("attempt_number") val attemptNumber: Int = 1,
-    @SerialName("learner_reflection") val learnerReflection: String = ""
+    @SerialName("learner_reflection") val learnerReflection: String = "",
+    @SerialName("audio_wav_base64") val audioWavBase64: String? = null,
+    @SerialName("archetype_hint") val archetypeHint: String? = null
 ) {
     companion object {
         const val DEFAULT_TAPO_LEARNER_ID = "tapo_android_learner"
@@ -22,11 +24,20 @@ data class TapoLiveAnalyzeRequestDto(
 
 fun TapoCameraConfig.toLiveAnalyzeRequestDto(
     attemptNumber: Int,
-    reflectionText: String
-): TapoLiveAnalyzeRequestDto = TapoLiveAnalyzeRequestDto(
-    ipAddress = ipAddress.trim(),
-    username = username.trim(),
-    password = password,
-    attemptNumber = attemptNumber,
-    learnerReflection = reflectionText.trim()
-)
+    reflectionText: String,
+    audioWavBase64: String? = null,
+    archetypeHint: String? = null
+): TapoLiveAnalyzeRequestDto {
+    val normalizedArchetype = archetypeHint?.trim()?.takeIf { it.isNotEmpty() }
+    return TapoLiveAnalyzeRequestDto(
+        ipAddress = ipAddress.trim(),
+        username = username.trim(),
+        password = password,
+        learnerId = normalizedArchetype?.let { "android_$it" }
+            ?: TapoLiveAnalyzeRequestDto.DEFAULT_TAPO_LEARNER_ID,
+        attemptNumber = attemptNumber,
+        learnerReflection = reflectionText.trim(),
+        audioWavBase64 = audioWavBase64?.takeIf { it.isNotBlank() },
+        archetypeHint = normalizedArchetype
+    )
+}

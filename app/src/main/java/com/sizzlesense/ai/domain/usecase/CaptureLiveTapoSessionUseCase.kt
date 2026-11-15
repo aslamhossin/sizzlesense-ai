@@ -15,7 +15,9 @@ class CaptureLiveTapoSessionUseCase @Inject constructor(
         baseUrl: String,
         tapoConfig: TapoCameraConfig,
         attemptNumber: Int,
-        reflectionText: String
+        reflectionText: String,
+        audioWavBase64: String? = null,
+        archetypeHint: String? = null
     ): AppResult<CognitiveCoachingResponse> {
         if (tapoConfig.ipAddress.isBlank()) {
             return AppResult.Failure(
@@ -26,7 +28,9 @@ class CaptureLiveTapoSessionUseCase @Inject constructor(
             baseUrl = baseUrl,
             tapoConfig = tapoConfig,
             attemptNumber = attemptNumber.coerceIn(1, 3),
-            reflectionText = reflectionText.trim()
+            reflectionText = reflectionText.trim(),
+            audioWavBase64 = audioWavBase64?.takeIf { it.isNotBlank() },
+            archetypeHint = archetypeHint?.takeIf { it.isNotBlank() }
         )
     }
 }

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import List
-from pydantic import BaseModel
+from typing import List, Optional
+from pydantic import BaseModel, Field
 
 from app.schemas.domain import CognitiveCoachingResponse
 
@@ -22,10 +22,12 @@ class TapoLiveAnalyzeRequest(BaseModel):
     password: str = ""
     learner_id: str = "tapo_live_learner"
     dish_id: str = "sauteed_onions"
-    attempt_number: int = 1
+    attempt_number: int = Field(default=1, ge=1, le=3)
     learner_reflection: str = (
         "I am cooking live under the Tapo C100 camera. Please analyze the pan state."
     )
+    archetype_hint: Optional[str] = None
+    audio_wav_base64: Optional[str] = None
     gemini_api_key: str | None = None
 
 

@@ -6,6 +6,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 
 from app.api.dependencies import get_cognitive_pipeline, get_memory_store
+from app.audio.sizzle_analyzer import generate_synthetic_sizzle_wav_base64
 from app.engine.chef_knowledge import ONION_LEARNER_ARCHETYPES
 from app.engine.cognitive_pipeline import CognitiveCoachingPipeline
 from app.engine.learner_store import LearnerMemoryStore
@@ -15,7 +16,6 @@ from app.schemas.api_models import (
     LearnerHistoryResponse,
 )
 from app.schemas.domain import CognitiveCoachingResponse, SessionAnalyzeRequest
-from app.vision.frame_analyzer import generate_synthetic_kitchen_frame_base64
 
 router = APIRouter(tags=["Cognitive Sessions & Learners"])
 
@@ -58,11 +58,11 @@ async def delete_learner_history(
 async def compare_three_onion_learners() -> ArchetypeComparisonResponse:
     """
     Demonstrates latent root-cause disambiguation:
-    3 learners all fail to sauté onions sufficiently (identical pale visual frame),
+    3 learners all fail to sauté onions sufficiently (identical wet-steam acoustic pan state),
     but receive 3 distinct latent diagnoses and single-issue coaching interventions.
     """
     temp_pipeline = CognitiveCoachingPipeline(memory_store=LearnerMemoryStore())
-    pale_frame = generate_synthetic_kitchen_frame_base64("pale_steaming")
+    wet_bubble_wav = generate_synthetic_sizzle_wav_base64("wet_steam_bubble")
     items: List[ArchetypeComparisonItem] = []
 
     for archetype_id, archetype in ONION_LEARNER_ARCHETYPES.items():
@@ -73,9 +73,7 @@ async def compare_three_onion_learners() -> ArchetypeComparisonResponse:
                 dish_id="sauteed_onions",
                 attempt_number=1,
                 learner_reflection=preset.learner_reflection,
-                archetype_hint=archetype_id,
-                keyframe_base64_list=[pale_frame],
-                acoustic_hint=preset.acoustic_signature,
+                audio_wav_base64=wet_bubble_wav,
             )
         )
         items.append(
@@ -89,7 +87,8 @@ async def compare_three_onion_learners() -> ArchetypeComparisonResponse:
 
     return ArchetypeComparisonResponse(
         shared_visual_input_description=(
-            "Identical overhead frame: pale translucent onions pooling in liquid (Maillard browning ratio < 0.20)."
+            "Shared Attempt 1 pan state (100°C wet-steaming audio regime; no synthetic camera frame generated) "
+            "evaluated across 3 distinct learner reflections."
         ),
         comparisons=items,
     )

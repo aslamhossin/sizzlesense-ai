@@ -6,10 +6,11 @@ import androidx.compose.runtime.Composable
 import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
 import com.sizzlesense.ai.presentation.common.component.ScoreBarRow
 import com.sizzlesense.ai.presentation.common.component.SizzleSectionCard
+import kotlin.math.roundToInt
 
 @Composable
 fun EvalAggregateScoreCard(report: EvalSuiteReport) {
-    val overallPct = (report.overallHumanLearningScore * 100).toInt()
+    val overallPct = (report.overallHumanLearningScore * 100.0).roundToInt()
     SizzleSectionCard(
         title = "Overall Score: $overallPct%",
         subtitle = "${report.totalSessionsEvaluated} sessions evaluated",

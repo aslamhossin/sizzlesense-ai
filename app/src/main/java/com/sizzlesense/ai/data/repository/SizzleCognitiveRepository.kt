@@ -1,9 +1,7 @@
 package com.sizzlesense.ai.data.repository
 
-import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.core.result.map
-import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
 import com.sizzlesense.ai.data.remote.dto.camera.toDomain
 import com.sizzlesense.ai.data.remote.dto.coaching.toDomain
@@ -17,6 +15,7 @@ import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
 import com.sizzlesense.ai.domain.model.session.SessionAnalyzeRequest
 import com.sizzlesense.ai.domain.repository.CameraDiscoveryGateway
 import com.sizzlesense.ai.domain.repository.EvaluationBenchmarkGateway
+import com.sizzlesense.ai.domain.repository.LearnerHistoryGateway
 import com.sizzlesense.ai.domain.repository.LiveTapoCameraGateway
 import com.sizzlesense.ai.domain.repository.SessionAnalysisGateway
 import javax.inject.Inject
@@ -24,45 +23,36 @@ import javax.inject.Singleton
 
 @Singleton
 class SizzleCognitiveRepository @Inject constructor(
-    private val remoteClient: FailoverJsonHttpClient,
-    private val localFallback: LocalFallbackCognitiveDataSource
+    private val remoteClient: FailoverJsonHttpClient
 ) : SessionAnalysisGateway,
     LiveTapoCameraGateway,
     EvaluationBenchmarkGateway,
-    CameraDiscoveryGateway {
+    CameraDiscoveryGateway,
+    LearnerHistoryGateway {
 
     override suspend fun analyzeSession(
         baseUrl: String,
         request: SessionAnalyzeRequest
-    ): AppResult<CognitiveCoachingResponse> {
-        val result = remoteClient.analyzeSessionWithFailover(
-            primaryBaseUrl = baseUrl,
-            request = request.toDto()
-        ).map { dto ->
-            dto.toDomain()
-        }
-
-        return when (result) {
-            is AppResult.Success -> result
-            is AppResult.Failure -> {
-                if (result.error is AppError.NetworkUnavailable) {
-                    AppResult.Success(localFallback.buildFallbackCoachingResponse(request))
-                } else {
-                    result
-                }
-            }
-        }
+    ): AppResult<CognitiveCoachingResponse> = remoteClient.analyzeSessionWithFailover(
+        primaryBaseUrl = baseUrl,
+        request = request.toDto()
+    ).map { dto ->
+        dto.toDomain()
     }
 
     override suspend fun captureFromBackendTapoAndAnalyze(
         baseUrl: String,
         tapoConfig: TapoCameraConfig,
         attemptNumber: Int,
-        reflectionText: String
+        reflectionText: String,
+        audioWavBase64: String?,
+        archetypeHint: String?
     ): AppResult<CognitiveCoachingResponse> {
         val requestDto = tapoConfig.toLiveAnalyzeRequestDto(
             attemptNumber = attemptNumber,
-            reflectionText = reflectionText
+            reflectionText = reflectionText,
+            audioWavBase64 = audioWavBase64,
+            archetypeHint = archetypeHint
         )
         return remoteClient.captureFromTapoAndAnalyzeWithFailover(
             primaryBaseUrl = baseUrl,
@@ -84,22 +74,18 @@ class SizzleCognitiveRepository @Inject constructor(
         }
     }
 
-    override suspend fun runEvaluationBenchmark(baseUrl: String): AppResult<EvalSuiteReport> {
-        val result = remoteClient.runEvaluationBenchmarkWithFailover(
+    override suspend fun runEvaluationBenchmark(baseUrl: String): AppResult<EvalSuiteReport> =
+        remoteClient.runEvaluationBenchmarkWithFailover(
             primaryBaseUrl = baseUrl
         ).map { dto ->
             dto.toDomain()
         }
 
-        return when (result) {
-            is AppResult.Success -> result
-            is AppResult.Failure -> {
-                if (result.error is AppError.NetworkUnavailable) {
-                    AppResult.Success(localFallback.buildFallbackEvalReport())
-                } else {
-                    result
-                }
-            }
-        }
-    }
+    override suspend fun clearLearnerHistory(
+        baseUrl: String,
+        learnerId: String
+    ): AppResult<Unit> = remoteClient.deleteLearnerHistoryWithFailover(
+        primaryBaseUrl = baseUrl,
+        learnerId = learnerId
+    ).map { }
 }

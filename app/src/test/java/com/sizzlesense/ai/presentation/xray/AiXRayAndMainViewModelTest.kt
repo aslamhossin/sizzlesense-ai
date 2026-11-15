@@ -1,12 +1,12 @@
 package com.sizzlesense.ai.presentation.xray
 
-import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.session.InMemorySessionStore
 import com.sizzlesense.ai.domain.model.session.SessionAnalyzeRequest
 import com.sizzlesense.ai.presentation.main.MainUiIntent
 import com.sizzlesense.ai.presentation.main.MainViewModel
 import com.sizzlesense.ai.presentation.navigation.SizzleDestination
 import com.sizzlesense.ai.testing.MainDispatcherRule
+import com.sizzlesense.ai.testing.TestFixtures
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -24,13 +24,11 @@ class AiXRayAndMainViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val fallbackDataSource = LocalFallbackCognitiveDataSource()
-
     @Test
     fun aiXRayViewModel_togglesSuppressedIssuesAndSyncsCoachingTrace() {
         runTest(mainDispatcherRule.testDispatcher) {
             val sessionStore = InMemorySessionStore()
-            val sampleResponse = fallbackDataSource.buildFallbackCoachingResponse(
+            val sampleResponse = TestFixtures.buildCoachingResponse(
                 SessionAnalyzeRequest(
                     learnerId = "l1",
                     dishId = "sauteed_onions",
@@ -69,7 +67,7 @@ class AiXRayAndMainViewModelTest {
             viewModel.onIntent(MainUiIntent.SelectAttemptNumber(3))
             assertEquals(3, viewModel.uiState.value.currentAttemptNumber)
 
-            val attempt3Response = fallbackDataSource.buildFallbackCoachingResponse(
+            val attempt3Response = TestFixtures.buildCoachingResponse(
                 SessionAnalyzeRequest(
                     learnerId = "l1",
                     dishId = "sauteed_onions",

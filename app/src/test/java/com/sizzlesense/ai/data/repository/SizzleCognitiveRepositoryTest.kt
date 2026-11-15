@@ -3,14 +3,17 @@ package com.sizzlesense.ai.data.repository
 import com.sizzlesense.ai.BuildConfig
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
-import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.remote.DynamicBaseUrlInterceptor
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
 import com.sizzlesense.ai.data.remote.LanBackendScanner
+import com.sizzlesense.ai.data.remote.dto.coaching.CognitiveCoachingResponseDto
+import com.sizzlesense.ai.data.remote.dto.coaching.toDto
 import com.sizzlesense.ai.di.module.NetworkModule
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import com.sizzlesense.ai.domain.model.session.SessionAnalyzeRequest
+import com.sizzlesense.ai.testing.TestFixtures
 import java.io.IOException
+import java.net.SocketTimeoutException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -20,6 +23,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -30,7 +34,6 @@ import org.junit.Test
 class SizzleCognitiveRepositoryTest {
 
     private val json = NetworkModule.provideJson()
-    private val fallbackDataSource = LocalFallbackCognitiveDataSource()
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private fun buildRepositoryWithInterceptor(
@@ -52,14 +55,11 @@ class SizzleCognitiveRepositoryTest {
             lanBackendScanner = lanBackendScanner,
             isPhysicalDevice = isPhysicalDevice
         )
-        return SizzleCognitiveRepository(
-            remoteClient = remoteClient,
-            localFallback = fallbackDataSource
-        )
+        return SizzleCognitiveRepository(remoteClient = remoteClient)
     }
 
     @Test
-    fun analyzeSession_fallsBackToOfflineDemoSimulationOnlyOnNetworkUnavailable() {
+    fun analyzeSession_returnsNetworkUnavailableWithoutFallbackWhenBackendUnreachable() {
         runTest {
             val repository = buildRepositoryWithInterceptor {
                 throw IOException("Connection refused")
@@ -78,27 +78,26 @@ class SizzleCognitiveRepositoryTest {
                 request = request
             )
 
-            assertTrue(result is AppResult.Success)
-            val response = (result as AppResult.Success).data
-            assertEquals(
-                "Offline Demo Simulation (Backend Unreachable)",
-                response.reasoningModelUsed
-            )
-            assertEquals("moisture_blindness", response.stage2LearnerState.learnerArchetypeId)
+            assertTrue(result is AppResult.Failure)
+            val error = (result as AppResult.Failure).error
+            assertTrue(error is AppError.NetworkUnavailable)
         }
     }
 
     @Test
-    fun analyzeSession_doesNotSwallowHttp500ErrorsIntoSilentFallback() {
+    fun analyzeSession_abortsFailoverOnHttpErrorAndExtractsFastApiDetail() {
         runTest {
+            val visitedHosts = mutableListOf<String>()
             val repository = buildRepositoryWithInterceptor { chain ->
+                val req = chain.request()
+                visitedHosts.add(req.url.host)
                 Response.Builder()
-                    .request(chain.request())
+                    .request(req)
                     .protocol(Protocol.HTTP_1_1)
-                    .code(500)
-                    .message("Internal Server Error")
+                    .code(422)
+                    .message("Unprocessable Entity")
                     .body(
-                        """{"detail":"Gemini API quota exceeded"}"""
+                        """{"detail":"No pan or active cooking surface detected in frame."}"""
                             .toResponseBody("application/json".toMediaType())
                     )
                     .build()
@@ -108,18 +107,85 @@ class SizzleCognitiveRepositoryTest {
                 learnerId = "learner_1",
                 dishId = "sauteed_onions",
                 attemptNumber = 1,
-                learnerReflection = "Testing HTTP 500"
+                learnerReflection = "Testing HTTP 422"
             )
 
             val result = repository.analyzeSession(
-                baseUrl = "http://192.168.11.12:8000",
+                baseUrl = "http://192.168.11.99:8000",
                 request = request
             )
 
+            assertEquals(1, visitedHosts.size)
             assertTrue(result is AppResult.Failure)
             val error = (result as AppResult.Failure).error
             assertTrue(error is AppError.HttpError)
-            assertEquals(500, (error as AppError.HttpError).statusCode)
+            val httpError = error as AppError.HttpError
+            assertEquals(422, httpError.statusCode)
+            assertEquals("No pan or active cooking surface detected in frame.", httpError.readableMessage)
+        }
+    }
+
+    @Test
+    fun analyzeSession_preservesTimeoutWithoutFailoverOnSocketReadTimeout() {
+        runTest {
+            val visitedHosts = mutableListOf<String>()
+            val repository = buildRepositoryWithInterceptor { chain ->
+                visitedHosts.add(chain.request().url.host)
+                throw SocketTimeoutException("timeout")
+            }
+
+            val result = repository.analyzeSession(
+                baseUrl = "http://192.168.11.99:8000",
+                request = SessionAnalyzeRequest(
+                    learnerId = "learner_1",
+                    dishId = "sauteed_onions",
+                    attemptNumber = 1,
+                    learnerReflection = "Testing read timeout"
+                )
+            )
+
+            assertEquals(1, visitedHosts.size)
+            assertTrue(result is AppResult.Failure)
+            assertTrue((result as AppResult.Failure).error is AppError.Timeout)
+        }
+    }
+
+    @Test
+    fun analyzeSession_failsOverAcrossCandidatesOnSocketConnectTimeout() {
+        runTest {
+            val visitedHosts = mutableListOf<String>()
+            val responseJson = json.encodeToString(
+                CognitiveCoachingResponseDto.serializer(),
+                TestFixtures.buildCoachingResponse(cvMetrics = null).toDto()
+            )
+            val repository = buildRepositoryWithInterceptor { chain ->
+                val req = chain.request()
+                visitedHosts.add(req.url.host)
+                if (req.url.host == "192.168.11.99") {
+                    throw SocketTimeoutException("failed to connect to /192.168.11.99 (port 8000)")
+                }
+                Response.Builder()
+                    .request(req)
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body(responseJson.toResponseBody("application/json".toMediaType()))
+                    .build()
+            }
+
+            val result = repository.analyzeSession(
+                baseUrl = "http://192.168.11.99:8000",
+                request = SessionAnalyzeRequest(
+                    learnerId = "learner_1",
+                    dishId = "sauteed_onions",
+                    attemptNumber = 1,
+                    learnerReflection = "Testing connect failover"
+                )
+            )
+
+            assertTrue(result is AppResult.Success)
+            assertEquals(listOf("192.168.11.99", "10.0.2.2"), visitedHosts)
+            assertNull((result as AppResult.Success).data.stage1PhysicalObservation.cvMetrics)
         }
     }
 
@@ -168,7 +234,9 @@ class SizzleCognitiveRepositoryTest {
                 baseUrl = "http://192.168.11.12:8000",
                 tapoConfig = TapoCameraConfig(ipAddress = "192.168.11.16"),
                 attemptNumber = 2,
-                reflectionText = "Checking live camera"
+                reflectionText = "Checking live camera",
+                audioWavBase64 = "UklGRg==",
+                archetypeHint = "heat_anxiety"
             )
 
             assertTrue(result is AppResult.Failure)
@@ -178,14 +246,52 @@ class SizzleCognitiveRepositoryTest {
     }
 
     @Test
-    fun runEvaluationBenchmark_fallsBackOnNetworkUnavailableAndPropagatesHttpErrors() {
+    fun captureFromBackendTapoAndAnalyze_forwardsAudioWavAndArchetypeHintInRequestJson() {
+        runTest {
+            var requestBodyJson = ""
+            val responseJson = json.encodeToString(
+                CognitiveCoachingResponseDto.serializer(),
+                TestFixtures.buildCoachingResponse(attemptNumber = 2, cvMetrics = null).toDto()
+            )
+            val repository = buildRepositoryWithInterceptor { chain ->
+                val req = chain.request()
+                val buffer = Buffer()
+                req.body?.writeTo(buffer)
+                requestBodyJson = buffer.readUtf8()
+                Response.Builder()
+                    .request(req)
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body(responseJson.toResponseBody("application/json".toMediaType()))
+                    .build()
+            }
+
+            val result = repository.captureFromBackendTapoAndAnalyze(
+                baseUrl = "http://192.168.11.12:8000",
+                tapoConfig = TapoCameraConfig(ipAddress = "192.168.11.16"),
+                attemptNumber = 2,
+                reflectionText = "Checking live camera",
+                audioWavBase64 = "UklGRg==",
+                archetypeHint = "heat_anxiety"
+            )
+
+            assertTrue(result is AppResult.Success)
+            assertTrue(requestBodyJson.contains(""""audio_wav_base64":"UklGRg==""""))
+            assertTrue(requestBodyJson.contains(""""archetype_hint":"heat_anxiety""""))
+            assertNull((result as AppResult.Success).data.stage1PhysicalObservation.cvMetrics)
+        }
+    }
+
+    @Test
+    fun runEvaluationBenchmark_returnsNetworkUnavailableAndHttpErrorsWithoutFallback() {
         runTest {
             val offlineRepo = buildRepositoryWithInterceptor {
                 throw IOException("Offline")
             }
             val offlineResult = offlineRepo.runEvaluationBenchmark("http://192.168.11.12:8000")
-            assertTrue(offlineResult is AppResult.Success)
-            assertEquals(10, (offlineResult as AppResult.Success).data.totalSessionsEvaluated)
+            assertTrue(offlineResult is AppResult.Failure)
+            assertTrue((offlineResult as AppResult.Failure).error is AppError.NetworkUnavailable)
 
             val httpErrorRepo = buildRepositoryWithInterceptor { chain ->
                 Response.Builder()
@@ -199,6 +305,38 @@ class SizzleCognitiveRepositoryTest {
             val errorResult = httpErrorRepo.runEvaluationBenchmark("http://192.168.11.12:8000")
             assertTrue(errorResult is AppResult.Failure)
             assertTrue((errorResult as AppResult.Failure).error is AppError.HttpError)
+        }
+    }
+
+    @Test
+    fun clearLearnerHistory_sendsDeleteRequestToLearnerHistoryEndpoint() {
+        runTest {
+            var methodSeen = ""
+            var pathSeen = ""
+            val repository = buildRepositoryWithInterceptor { chain ->
+                val req = chain.request()
+                methodSeen = req.method
+                pathSeen = req.url.encodedPath
+                Response.Builder()
+                    .request(req)
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body(
+                        """{"learner_id":"android_heat_anxiety","deleted_sessions":2}"""
+                            .toResponseBody("application/json".toMediaType())
+                    )
+                    .build()
+            }
+
+            val result = repository.clearLearnerHistory(
+                baseUrl = "http://192.168.11.12:8000",
+                learnerId = "android_heat_anxiety"
+            )
+
+            assertTrue(result is AppResult.Success)
+            assertEquals("DELETE", methodSeen)
+            assertEquals("/api/v1/learners/android_heat_anxiety/history", pathSeen)
         }
     }
 

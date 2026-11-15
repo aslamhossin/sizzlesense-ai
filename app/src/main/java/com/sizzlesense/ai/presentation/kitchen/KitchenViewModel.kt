@@ -1,5 +1,6 @@
 package com.sizzlesense.ai.presentation.kitchen
 
+import androidx.lifecycle.viewModelScope
 import com.sizzlesense.ai.BuildConfig
 import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.core.ui.BaseViewModel
@@ -10,6 +11,7 @@ import com.sizzlesense.ai.domain.model.session.SessionSnapshot
 import com.sizzlesense.ai.domain.repository.SessionStore
 import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
+import com.sizzlesense.ai.domain.usecase.ClearLearnerHistoryUseCase
 import com.sizzlesense.ai.domain.usecase.DiscoverCameraAndServerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 private data class DiscoveryUiStatus(
     val isDiscovering: Boolean = false,
@@ -28,7 +31,8 @@ class KitchenViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val analyzeCookingSession: AnalyzeCookingSessionUseCase,
     private val captureLiveTapoSession: CaptureLiveTapoSessionUseCase,
-    private val discoverCameraAndServer: DiscoverCameraAndServerUseCase
+    private val discoverCameraAndServer: DiscoverCameraAndServerUseCase,
+    private val clearLearnerHistory: ClearLearnerHistoryUseCase
 ) : BaseViewModel<KitchenUiState, KitchenUiIntent, KitchenUiEffect>() {
 
     private val taskStatus = MutableStateFlow(TaskStatus())
@@ -93,7 +97,16 @@ class KitchenViewModel @Inject constructor(
             }
 
             is KitchenUiIntent.SelectArchetype -> {
+                val baseUrl = sessionStore.sessionState.value.backendBaseUrl
                 sessionStore.selectArchetype(intent.archetype)
+                viewModelScope.launch {
+                    runCatching {
+                        clearLearnerHistory(
+                            baseUrl = baseUrl,
+                            learnerId = "android_${intent.archetype.id}"
+                        )
+                    }
+                }
             }
 
             is KitchenUiIntent.UpdateReflectionText -> {
@@ -194,7 +207,9 @@ class KitchenViewModel @Inject constructor(
                 baseUrl = snapshot.backendBaseUrl,
                 tapoConfig = snapshot.tapoConfig,
                 attemptNumber = snapshot.currentAttemptNumber,
-                reflectionText = snapshot.learnerReflectionText
+                reflectionText = snapshot.learnerReflectionText,
+                audioWavBase64 = snapshot.capturedAudioWavBase64,
+                archetypeHint = snapshot.selectedArchetype.id
             )
         }
     }

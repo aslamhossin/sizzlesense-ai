@@ -38,6 +38,36 @@ fun Stage2LearnerLatentStateCard(
             label = "Root Cause",
             value = stage2.decisionRootCause
         )
+        if (stage2.demonstratedUnderstandings.isNotEmpty()) {
+            Text(
+                text = "Understood",
+                style = SizzleTheme.typography.labelMedium,
+                color = SizzleTheme.colors.accentSuccess
+            )
+            stage2.demonstratedUnderstandings.forEach { understood ->
+                Text(
+                    text = "• $understood",
+                    style = SizzleTheme.typography.bodySmall,
+                    color = SizzleTheme.colors.textPrimary
+                )
+            }
+        }
+        if (stage2.latentMisconceptions.isNotEmpty()) {
+            Text(
+                text = "Latent Misconceptions",
+                style = SizzleTheme.typography.labelMedium,
+                color = SizzleTheme.colors.brandPrimary
+            )
+            stage2.latentMisconceptions.forEach { hypothesis ->
+                val concept = DisplayLabelFormatter.toTitleCaseWords(hypothesis.conceptId)
+                val confidencePct = DisplayLabelFormatter.formatRatioPercent(hypothesis.confidence)
+                Text(
+                    text = "• $concept ($confidencePct): ${hypothesis.description}",
+                    style = SizzleTheme.typography.bodySmall,
+                    color = SizzleTheme.colors.textSecondary
+                )
+            }
+        }
         if (stage2.longitudinalDeltaSummary.isNotBlank()) {
             LabeledDetailRow(
                 label = "Progress Note",

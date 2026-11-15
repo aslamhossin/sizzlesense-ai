@@ -4,16 +4,25 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import binascii
 import io
 import ipaddress
+import re
 import socket
 from typing import List
 from urllib.parse import quote
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, UnidentifiedImageError
 
 from app.schemas.domain import ComputerVisionMetrics
+
+_RTSP_CREDS_RE = re.compile(r"rtsp://[^@\s]+@", re.IGNORECASE)
+
+
+def sanitize_rtsp_text(text: str) -> str:
+    """Masks username/password embedded in RTSP URLs before exposing logs or HTTP errors."""
+    return _RTSP_CREDS_RE.sub("rtsp://***:***@", text or "")
 
 
 class TapoLanDiscovery:
@@ -173,16 +182,30 @@ class TapoRtspUrlBuilder:
             "mjpeg",
             "pipe:1",
         ]
-        proc = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout_sec,
-            check=False,
-        )
+        try:
+            proc = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=timeout_sec,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError(
+                f"Timed out capturing RTSP frame from {ip_address}."
+            ) from exc
+        except OSError as exc:
+            raise RuntimeError(
+                f"Failed to execute ffmpeg for RTSP capture: {sanitize_rtsp_text(str(exc))}"
+            ) from exc
+
         if proc.returncode != 0 or not proc.stdout:
-            err_tail = proc.stderr.decode("utf-8", errors="ignore")[-300:]
-            raise RuntimeError(f"Failed to capture RTSP frame from {clean_ip if (clean_ip := ip_address) else ''}: {err_tail}")
+            err_tail = sanitize_rtsp_text(
+                proc.stderr.decode("utf-8", errors="ignore")[-300:]
+            )
+            raise RuntimeError(
+                f"Failed to capture RTSP frame from {ip_address}: {err_tail}"
+            )
         return base64.b64encode(proc.stdout).decode("utf-8")
 
 
@@ -245,9 +268,15 @@ class KitchenFrameAnalyzer:
 
     @classmethod
     def analyze_base64_frame(cls, b64_string: str) -> ComputerVisionMetrics:
-        clean_b64 = b64_string.split(",")[-1].strip()
-        raw_bytes = base64.b64decode(clean_b64)
-        img = Image.open(io.BytesIO(raw_bytes))
+        clean_b64 = re.sub(r"\s+", "", b64_string.split(",")[-1])
+        if not clean_b64:
+            raise ValueError("Empty image frame base64 payload.")
+        try:
+            raw_bytes = base64.b64decode(clean_b64, validate=True)
+            img = Image.open(io.BytesIO(raw_bytes))
+            img.load()
+        except (binascii.Error, UnidentifiedImageError, OSError, ValueError) as exc:
+            raise ValueError(f"Invalid base64-encoded image frame: {exc}") from exc
         return cls.analyze_image(img)
 
     @classmethod
@@ -259,7 +288,7 @@ class KitchenFrameAnalyzer:
 
 
 def generate_synthetic_kitchen_frame_base64(regime: str = "pale_steaming") -> str:
-    """Generates a deterministic overhead skillet image for testing & zero-camera simulation."""
+    """Test-only helper that generates synthetic skillet frames for KitchenFrameAnalyzer unit tests."""
     img = Image.new("RGB", (128, 128), color=(90, 90, 95))
     draw = ImageDraw.Draw(img)
 

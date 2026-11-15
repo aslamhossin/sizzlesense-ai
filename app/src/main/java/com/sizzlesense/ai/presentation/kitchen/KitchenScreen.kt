@@ -1,20 +1,14 @@
 package com.sizzlesense.ai.presentation.kitchen
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sizzlesense.ai.presentation.common.component.DismissibleErrorBanner
+import com.sizzlesense.ai.presentation.common.component.PinnedErrorScrollColumn
 import com.sizzlesense.ai.presentation.kitchen.component.AcousticSizzleCaptureCard
 import com.sizzlesense.ai.presentation.kitchen.component.OnionArchetypeScenarioCard
 import com.sizzlesense.ai.presentation.kitchen.component.TapoBackendSettingsCard
@@ -47,20 +41,10 @@ fun KitchenScreen(
     state: KitchenUiState,
     onIntent: (KitchenUiIntent) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(top = SizzleTheme.spacing.md),
-        verticalArrangement = Arrangement.spacedBy(SizzleTheme.spacing.md)
+    PinnedErrorScrollColumn(
+        errorMessage = state.errorMessage,
+        onDismissError = { onIntent(KitchenUiIntent.ClearError) }
     ) {
-        state.errorMessage?.let { err ->
-            DismissibleErrorBanner(
-                errorMessage = err,
-                onDismiss = { onIntent(KitchenUiIntent.ClearError) }
-            )
-        }
-
         TapoRtspPlayerView(
             config = state.tapoConfig,
             onConnectToggle = { connect ->

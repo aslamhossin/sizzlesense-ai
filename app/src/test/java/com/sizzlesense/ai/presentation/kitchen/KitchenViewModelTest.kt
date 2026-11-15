@@ -2,16 +2,17 @@ package com.sizzlesense.ai.presentation.kitchen
 
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
-import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.session.InMemorySessionStore
 import com.sizzlesense.ai.domain.model.camera.CameraDiscoveryInfo
 import com.sizzlesense.ai.domain.model.coaching.AcousticSizzleSignature
 import com.sizzlesense.ai.domain.model.session.LearnerArchetypeOption
 import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.domain.usecase.CaptureLiveTapoSessionUseCase
+import com.sizzlesense.ai.domain.usecase.ClearLearnerHistoryUseCase
 import com.sizzlesense.ai.domain.usecase.DiscoverCameraAndServerUseCase
 import com.sizzlesense.ai.presentation.kitchen.component.PcmWavSizzleCodec
 import com.sizzlesense.ai.testing.MainDispatcherRule
+import com.sizzlesense.ai.testing.TestFixtures
 import java.util.Base64
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,25 +34,32 @@ class KitchenViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val fallbackDataSource = LocalFallbackCognitiveDataSource()
-
     private fun offlineDiscoveryUseCase() = DiscoverCameraAndServerUseCase { _, _ ->
         AppResult.Failure(AppError.NetworkUnavailable("Discovery offline in test"))
+    }
+
+    private fun noopClearHistoryUseCase() = ClearLearnerHistoryUseCase { _, _ ->
+        AppResult.Success(Unit)
     }
 
     @Test
     fun onIntent_updatesSessionStoreAndSynchronizesKitchenUiState() {
         runTest(mainDispatcherRule.testDispatcher) {
+            var clearedLearnerId: String? = null
             val sessionStore = InMemorySessionStore()
             val viewModel = KitchenViewModel(
                 sessionStore = sessionStore,
                 analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
-                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                    AppResult.Success(TestFixtures.buildCoachingResponse(req))
                 },
-                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _, _, _ ->
                     error("Unused in state sync test")
                 },
-                discoverCameraAndServer = offlineDiscoveryUseCase()
+                discoverCameraAndServer = offlineDiscoveryUseCase(),
+                clearLearnerHistory = ClearLearnerHistoryUseCase { _, learnerId ->
+                    clearedLearnerId = learnerId
+                    AppResult.Success(Unit)
+                }
             )
 
             // Activate WhileSubscribed collector as Compose collectAsStateWithLifecycle does
@@ -85,6 +93,7 @@ class KitchenViewModelTest {
                 LearnerArchetypeOption.HEAT_ANXIETY,
                 viewModel.uiState.value.selectedArchetype
             )
+            assertEquals("android_heat_anxiety", clearedLearnerId)
 
             collectorJob.cancel()
         }
@@ -97,12 +106,13 @@ class KitchenViewModelTest {
             val viewModel = KitchenViewModel(
                 sessionStore = sessionStore,
                 analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
-                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                    AppResult.Success(TestFixtures.buildCoachingResponse(req))
                 },
-                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _, _, _ ->
                     error("Unused")
                 },
-                discoverCameraAndServer = offlineDiscoveryUseCase()
+                discoverCameraAndServer = offlineDiscoveryUseCase(),
+                clearLearnerHistory = noopClearHistoryUseCase()
             )
 
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
@@ -126,12 +136,13 @@ class KitchenViewModelTest {
             val viewModel = KitchenViewModel(
                 sessionStore = sessionStore,
                 analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
-                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                    AppResult.Success(TestFixtures.buildCoachingResponse(req))
                 },
-                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _, _, _ ->
                     AppResult.Failure(AppError.NetworkUnavailable("Should not reach gateway"))
                 },
-                discoverCameraAndServer = offlineDiscoveryUseCase()
+                discoverCameraAndServer = offlineDiscoveryUseCase(),
+                clearLearnerHistory = noopClearHistoryUseCase()
             )
 
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
@@ -160,6 +171,54 @@ class KitchenViewModelTest {
     }
 
     @Test
+    fun captureFromBackendTapoAndAnalyze_forwardsCapturedAudioAndArchetypeAndEmitsNavigationEffect() {
+        runTest(mainDispatcherRule.testDispatcher) {
+            var capturedAudio: String? = null
+            var capturedArchetype: String? = null
+            val sessionStore = InMemorySessionStore()
+            val viewModel = KitchenViewModel(
+                sessionStore = sessionStore,
+                analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
+                    AppResult.Success(TestFixtures.buildCoachingResponse(req))
+                },
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, attempt, _, audio, archetype ->
+                    capturedAudio = audio
+                    capturedArchetype = archetype
+                    AppResult.Success(TestFixtures.buildCoachingResponse(attemptNumber = attempt))
+                },
+                discoverCameraAndServer = offlineDiscoveryUseCase(),
+                clearLearnerHistory = noopClearHistoryUseCase()
+            )
+
+            val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
+
+            viewModel.onIntent(KitchenUiIntent.SelectArchetype(LearnerArchetypeOption.PERCEPTION_BLINDSPOT))
+            viewModel.onIntent(
+                KitchenUiIntent.UpdateTapoConfig(
+                    ipAddress = "192.168.11.16",
+                    username = "chef",
+                    password = "pw",
+                    useSubStream = true
+                )
+            )
+            viewModel.onIntent(
+                KitchenUiIntent.OnAudioSampleCaptured(
+                    base64Wav = "UklGRg==",
+                    timestampLabel = "Live sample"
+                )
+            )
+
+            viewModel.onIntent(KitchenUiIntent.CaptureFromBackendTapoAndAnalyze)
+
+            assertEquals(KitchenUiEffect.NavigateToCoaching, viewModel.effects.first())
+            assertEquals("UklGRg==", capturedAudio)
+            assertEquals("perception_blindspot", capturedArchetype)
+
+            collectorJob.cancel()
+        }
+    }
+
+    @Test
     fun onAudioSampleCaptured_encodesValidRiffWavAndForwardsAudioToAnalyzeGateway() {
         runTest(mainDispatcherRule.testDispatcher) {
             var forwardedAudioB64: String? = null
@@ -168,12 +227,13 @@ class KitchenViewModelTest {
                 sessionStore = sessionStore,
                 analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
                     forwardedAudioB64 = req.audioWavBase64
-                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                    AppResult.Success(TestFixtures.buildCoachingResponse(req))
                 },
-                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _, _, _ ->
                     error("Unused")
                 },
-                discoverCameraAndServer = offlineDiscoveryUseCase()
+                discoverCameraAndServer = offlineDiscoveryUseCase(),
+                clearLearnerHistory = noopClearHistoryUseCase()
             )
 
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
@@ -215,12 +275,13 @@ class KitchenViewModelTest {
                 analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
                     invocationCount += 1
                     gate.await()
-                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                    AppResult.Success(TestFixtures.buildCoachingResponse(req))
                 },
-                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _, _, _ ->
                     error("Unused")
                 },
-                discoverCameraAndServer = offlineDiscoveryUseCase()
+                discoverCameraAndServer = offlineDiscoveryUseCase(),
+                clearLearnerHistory = noopClearHistoryUseCase()
             )
 
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)
@@ -247,9 +308,9 @@ class KitchenViewModelTest {
             val viewModel = KitchenViewModel(
                 sessionStore = sessionStore,
                 analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
-                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                    AppResult.Success(TestFixtures.buildCoachingResponse(req))
                 },
-                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _ ->
+                captureLiveTapoSession = CaptureLiveTapoSessionUseCase { _, _, _, _, _, _ ->
                     error("Unused")
                 },
                 discoverCameraAndServer = DiscoverCameraAndServerUseCase { _, _ ->
@@ -269,7 +330,8 @@ class KitchenViewModelTest {
                             )
                         )
                     }
-                }
+                },
+                clearLearnerHistory = noopClearHistoryUseCase()
             )
 
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import io
 import math
+import re
 import wave
 
 import numpy as np
@@ -24,14 +26,17 @@ class AcousticSizzleAnalyzer:
 
     @classmethod
     def analyze_wav_bytes(cls, wav_bytes: bytes) -> AcousticSpectralMetrics:
-        with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
-            n_channels = wf.getnchannels()
-            sampwidth = wf.getsampwidth()
-            sample_rate = wf.getframerate()
-            n_frames = wf.getnframes()
-            raw_pcm = wf.readframes(n_frames)
+        try:
+            with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
+                n_channels = wf.getnchannels()
+                sampwidth = wf.getsampwidth()
+                sample_rate = wf.getframerate()
+                n_frames = wf.getnframes()
+                raw_pcm = wf.readframes(n_frames)
+        except (wave.Error, EOFError, ValueError) as exc:
+            raise ValueError(f"Expected valid 16-bit PCM WAV audio: {exc}") from exc
 
-        if sampwidth != 2 or n_frames == 0:
+        if sampwidth != 2 or n_frames == 0 or sample_rate <= 0:
             raise ValueError("Expected non-empty 16-bit PCM WAV audio.")
 
         samples_i16 = np.frombuffer(raw_pcm, dtype=np.int16).astype(np.float32)
@@ -93,8 +98,13 @@ class AcousticSizzleAnalyzer:
 
     @classmethod
     def analyze_wav_base64(cls, wav_b64: str) -> AcousticSpectralMetrics:
-        clean_b64 = wav_b64.split(",")[-1].strip()
-        raw_bytes = base64.b64decode(clean_b64)
+        clean_b64 = re.sub(r"\s+", "", wav_b64.split(",")[-1])
+        if not clean_b64:
+            raise ValueError("Empty WAV audio base64 payload.")
+        try:
+            raw_bytes = base64.b64decode(clean_b64, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError(f"Invalid base64-encoded WAV audio: {exc}") from exc
         return cls.analyze_wav_bytes(raw_bytes)
 
 

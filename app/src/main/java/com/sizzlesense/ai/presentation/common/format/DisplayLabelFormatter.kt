@@ -22,7 +22,8 @@ object DisplayLabelFormatter {
         "PALE_STEAMING_OR_RAW" to "Pale & Steaming",
         "TRANSITIONAL_SAUTE" to "Warming & Clearing",
         "GOLDEN_MAILLARD_BROWNING" to "Golden Browning",
-        "CHARRED_OVERCOOKED" to "Darkening / Scorch Risk"
+        "CHARRED_OVERCOOKED" to "Darkening / Scorch Risk",
+        "SCORCHED_CARBONIZED" to "Scorched / Carbonized"
     )
 
     fun formatPerceptionGap(level: PerceptionGapLevel): String = when (level) {
@@ -52,10 +53,10 @@ object DisplayLabelFormatter {
         archetypeLabels[rawId.lowercase(Locale.US)] ?: toTitleCaseWords(rawId)
 
     fun formatEvalCaseTitle(caseId: String): String {
-        if (caseId == "negative_control_lucky_timer") {
+        val cleaned = caseId.replace(Regex("_attempt_\\d+$"), "")
+        if (cleaned == "negative_control_lucky_timer") {
             return "Lucky Timer Control"
         }
-        val cleaned = caseId.replace(Regex("_attempt_\\d+$"), "")
         return formatArchetypeId(cleaned)
     }
 
@@ -81,19 +82,8 @@ object DisplayLabelFormatter {
         return cleaned
     }
 
-    fun formatModelSource(rawModel: String): String {
-        val lower = rawModel.lowercase(Locale.US)
-        val hasCv = lower.contains("cv") || lower.contains("pixel")
-        val hasAudio = lower.contains("audio") || lower.contains("fft")
-        return when {
-            lower.contains("offline") -> "Offline Simulation"
-            hasCv && hasAudio -> "Vision + Sound Analysis"
-            hasCv -> "Vision Analysis"
-            hasAudio -> "Sound Analysis"
-            lower.contains("gemini") || lower.contains("gpt") || lower.contains("vision") -> "AI Coaching Engine"
-            else -> rawModel
-        }
-    }
+    fun formatModelSource(rawModel: String): String =
+        rawModel.trim().ifBlank { "Unknown" }
 
     fun formatRatioPercent(ratio: Double): String = "${(ratio.coerceIn(0.0, 1.0) * 100.0).roundToInt()}%"
 

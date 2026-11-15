@@ -16,7 +16,11 @@ from app.schemas.api_models import (
     TapoRtspResponse,
 )
 from app.schemas.domain import CognitiveCoachingResponse, SessionAnalyzeRequest
-from app.vision.frame_analyzer import TapoLanDiscovery, TapoRtspUrlBuilder
+from app.vision.frame_analyzer import (
+    TapoLanDiscovery,
+    TapoRtspUrlBuilder,
+    sanitize_rtsp_text,
+)
 
 router = APIRouter(prefix="/camera", tags=["Tapo C100 RTSP Camera"])
 
@@ -102,7 +106,7 @@ async def get_tapo_live_snapshot(
     except Exception as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"Could not capture live snapshot from Tapo camera at {target_ip}: {exc}",
+            detail=f"Could not capture live snapshot from Tapo camera at {target_ip}: {sanitize_rtsp_text(str(exc))}",
         ) from exc
 
 
@@ -130,16 +134,22 @@ async def capture_from_tapo_and_analyze(
     except Exception as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"Could not capture frame from Tapo camera at {target_ip}: {exc}",
+            detail=f"Could not capture frame from Tapo camera at {target_ip}: {sanitize_rtsp_text(str(exc))}",
         ) from exc
+
+    reflection = req.learner_reflection.strip() or (
+        "I am cooking live under the Tapo C100 camera. Please analyze the pan state."
+    )
 
     return await pipeline.analyze_session(
         SessionAnalyzeRequest(
             learner_id=req.learner_id,
             dish_id=req.dish_id,
             attempt_number=req.attempt_number,
-            learner_reflection=req.learner_reflection,
+            learner_reflection=reflection,
+            archetype_hint=req.archetype_hint,
             keyframe_base64_list=[live_b64],
+            audio_wav_base64=req.audio_wav_base64,
             gemini_api_key=req.gemini_api_key,
         )
     )

@@ -1,6 +1,9 @@
 package com.sizzlesense.ai.data.session
 
+import com.sizzlesense.ai.data.remote.dto.coaching.toDto
+import com.sizzlesense.ai.data.remote.dto.eval.toDto
 import com.sizzlesense.ai.di.module.NetworkModule
+import com.sizzlesense.ai.testing.TestFixtures
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import com.sizzlesense.ai.domain.model.coaching.AcousticSizzleSignature
 import com.sizzlesense.ai.domain.model.coaching.BehavioralTransferStatus
@@ -34,7 +37,41 @@ class InMemorySessionStoreTest {
         assertEquals(LearnerArchetypeOption.HEAT_ANXIETY, current.selectedArchetype)
         assertTrue(current.learnerReflectionText.contains("steaming a lot"))
         assertTrue(current.attemptHistory.isEmpty())
+        assertTrue(current.attemptReflections.isEmpty())
         assertNull(current.latestCoachingResponse)
+    }
+
+    @Test
+    fun selectAttemptNumber_clearsUnrunCoachingResponseAndPreservesCustomReflectionsPerAttempt() {
+        val store = InMemorySessionStore()
+        val attempt1Response = com.sizzlesense.ai.testing.TestFixtures.buildCoachingResponse(
+            attemptNumber = 1
+        )
+        store.updateReflectionText("Custom reflection for attempt 1")
+        store.recordCoachingResponse(attempt1Response)
+
+        store.selectAttemptNumber(2)
+        val attempt2State = store.sessionState.value
+        assertEquals(2, attempt2State.currentAttemptNumber)
+        assertNull(attempt2State.latestCoachingResponse)
+        assertTrue(attempt2State.learnerReflectionText.contains("crisp sizzle"))
+
+        store.updateReflectionText("Custom reflection for attempt 2")
+        store.selectAttemptNumber(1)
+        val restoredAttempt1 = store.sessionState.value
+        assertEquals(attempt1Response, restoredAttempt1.latestCoachingResponse)
+        assertEquals("Custom reflection for attempt 1", restoredAttempt1.learnerReflectionText)
+
+        store.selectAttemptNumber(2)
+        val restoredAttempt2 = store.sessionState.value
+        assertNull(restoredAttempt2.latestCoachingResponse)
+        assertEquals("Custom reflection for attempt 2", restoredAttempt2.learnerReflectionText)
+
+        store.selectArchetype(LearnerArchetypeOption.PERCEPTION_BLINDSPOT)
+        val resetState = store.sessionState.value
+        assertTrue(resetState.attemptHistory.isEmpty())
+        assertTrue(resetState.attemptReflections.isEmpty())
+        assertNull(resetState.latestCoachingResponse)
     }
 
     @Test
@@ -132,6 +169,89 @@ class InMemorySessionStoreTest {
             assertTrue(restored.tapoConfig.useSubStream)
             assertEquals(dummyResponse, restored.latestCoachingResponse)
             assertEquals(dummyResponse, restored.attemptHistory[1])
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
+    fun loadSnapshot_scrubsLegacyV1AndFallbackCachesWhilePreservingSettingsAndV2LiveSessions() {
+        val tempFile = Files.createTempFile("sizzlesense_migration_test_", ".json").toFile()
+        val json = NetworkModule.provideJson()
+        val persistence = SessionPersistenceDataSource(storageFile = tempFile, json = json)
+        try {
+            val v1Dto = PersistedSessionSnapshotDto(
+                schemaVersion = 1,
+                backendBaseUrl = "http://192.168.11.7:8000",
+                tapoConfig = PersistedTapoCameraConfigDto(
+                    ipAddress = "192.168.11.14",
+                    username = "chef_saved",
+                    password = "pw",
+                    useSubStream = true
+                ),
+                selectedArchetype = LearnerArchetypeOption.HEAT_ANXIETY.name,
+                latestCoachingResponse = TestFixtures.buildCoachingResponse(
+                    reasoningModelUsed = "gemini-3-flash-preview (Live Gemini API)"
+                ).toDto(),
+                attemptHistory = mapOf(
+                    1 to TestFixtures.buildCoachingResponse(
+                        reasoningModelUsed = "gemini-3-flash-preview (Live Gemini API)"
+                    ).toDto()
+                ),
+                evalSuiteReport = TestFixtures.buildEvalReport().toDto()
+            )
+            // Also strip explicit schema_version to simulate pre-schemaVersion disk JSON
+            val rawWithoutVersion = json.encodeToString(
+                PersistedSessionSnapshotDto.serializer(),
+                v1Dto
+            ).replace("\"schema_version\":1,", "")
+            tempFile.writeText(rawWithoutVersion, Charsets.UTF_8)
+
+            val upgradedV1 = InMemorySessionStore(persistence).sessionState.value
+            assertNull(upgradedV1.latestCoachingResponse)
+            assertTrue(upgradedV1.attemptHistory.isEmpty())
+            assertNull(upgradedV1.evalSuiteReport)
+            assertEquals("http://192.168.11.7:8000", upgradedV1.backendBaseUrl)
+            assertEquals("192.168.11.14", upgradedV1.tapoConfig.ipAddress)
+            assertEquals("chef_saved", upgradedV1.tapoConfig.username)
+            assertEquals(LearnerArchetypeOption.HEAT_ANXIETY, upgradedV1.selectedArchetype)
+
+            // Schema v2 with deterministic/offline fallback markers in attempt history must also be scrubbed
+            val pollutedV2 = v1Dto.copy(
+                schemaVersion = SessionPersistenceDataSource.CURRENT_SCHEMA_VERSION,
+                latestCoachingResponse = TestFixtures.buildCoachingResponse(
+                    reasoningModelUsed = "Offline Demo Simulation (Backend Unreachable)"
+                ).toDto(),
+                attemptHistory = mapOf(
+                    1 to TestFixtures.buildCoachingResponse(
+                        reasoningModelUsed = "gemini-3-flash-preview (Deterministic-Verified)"
+                    ).toDto()
+                )
+            )
+            tempFile.writeText(
+                json.encodeToString(PersistedSessionSnapshotDto.serializer(), pollutedV2),
+                Charsets.UTF_8
+            )
+            val scrubbedV2 = InMemorySessionStore(persistence).sessionState.value
+            assertNull(scrubbedV2.latestCoachingResponse)
+            assertTrue(scrubbedV2.attemptHistory.isEmpty())
+            assertNull(scrubbedV2.evalSuiteReport)
+
+            // Clean v2 live sessions & eval report persist intact with schema_version = 2
+            tempFile.delete()
+            val liveStore = InMemorySessionStore(persistence)
+            val liveResponse = TestFixtures.buildCoachingResponse(
+                reasoningModelUsed = "gemini-3-flash-preview (Live Gemini API)"
+            )
+            val liveEval = TestFixtures.buildEvalReport()
+            liveStore.recordCoachingResponse(liveResponse)
+            liveStore.recordEvalSuiteReport(liveEval)
+
+            assertTrue(tempFile.readText(Charsets.UTF_8).contains("\"schema_version\":2"))
+            val restoredLive = InMemorySessionStore(persistence).sessionState.value
+            assertEquals(liveResponse, restoredLive.latestCoachingResponse)
+            assertEquals(liveResponse, restoredLive.attemptHistory[1])
+            assertEquals(liveEval, restoredLive.evalSuiteReport)
         } finally {
             tempFile.delete()
         }

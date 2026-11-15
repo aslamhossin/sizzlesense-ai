@@ -77,6 +77,7 @@ class InMemorySessionStore : SessionStore {
             current.copy(
                 selectedArchetype = archetype,
                 learnerReflectionText = presetText,
+                attemptReflections = emptyMap(),
                 attemptHistory = emptyMap(),
                 latestCoachingResponse = null
             )
@@ -89,19 +90,21 @@ class InMemorySessionStore : SessionStore {
             val presetText = current.selectedArchetype
                 .presetReflections[clamped]
                 .orEmpty()
-            val existingAttemptResponse = current.attemptHistory[clamped]
+            val resolvedReflection = current.attemptReflections[clamped] ?: presetText
             current.copy(
                 currentAttemptNumber = clamped,
-                learnerReflectionText = presetText,
-                latestCoachingResponse = existingAttemptResponse
-                    ?: current.latestCoachingResponse
+                learnerReflectionText = resolvedReflection,
+                latestCoachingResponse = current.attemptHistory[clamped]
             )
         }
     }
 
     override fun updateReflectionText(text: String) {
         mutateAndPersist { current ->
-            current.copy(learnerReflectionText = text)
+            current.copy(
+                learnerReflectionText = text,
+                attemptReflections = current.attemptReflections + (current.currentAttemptNumber to text)
+            )
         }
     }
 

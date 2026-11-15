@@ -40,6 +40,7 @@ def test_physical_observation_separates_facts_from_inferred_states():
         perception_gap_explanation="Learner mistakes translucent steaming for Maillard browning.",
     )
     assert report.perception_gap_level == PerceptionGapLevel.CRITICAL_BLINDSPOT
+    assert report.cv_metrics is None
     assert len(report.observed_timeline_facts) == 1
     assert len(report.inferred_physical_states) == 1
 

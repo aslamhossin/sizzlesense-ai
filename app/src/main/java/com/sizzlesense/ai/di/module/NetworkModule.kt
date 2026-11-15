@@ -22,7 +22,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 object NetworkModule {
 
     private const val CONNECT_TIMEOUT_SECONDS = 2L
-    private const val READ_TIMEOUT_SECONDS = 28L
+    private const val READ_TIMEOUT_SECONDS = 90L
     private const val JSON_MEDIA_TYPE = "application/json; charset=utf-8"
 
     @Provides

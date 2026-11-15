@@ -2,10 +2,10 @@ package com.sizzlesense.ai.presentation.coaching
 
 import com.sizzlesense.ai.core.result.AppError
 import com.sizzlesense.ai.core.result.AppResult
-import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.session.InMemorySessionStore
 import com.sizzlesense.ai.domain.usecase.AnalyzeCookingSessionUseCase
 import com.sizzlesense.ai.testing.MainDispatcherRule
+import com.sizzlesense.ai.testing.TestFixtures
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -23,8 +23,6 @@ class CoachingViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val fallbackDataSource = LocalFallbackCognitiveDataSource()
-
     @Test
     fun analyzeCurrentAttempt_updatesLatestCoachingResponseInStateAndStore() {
         runTest(mainDispatcherRule.testDispatcher) {
@@ -34,7 +32,7 @@ class CoachingViewModelTest {
             val viewModel = CoachingViewModel(
                 sessionStore = sessionStore,
                 analyzeCookingSession = AnalyzeCookingSessionUseCase { _, req ->
-                    AppResult.Success(fallbackDataSource.buildFallbackCoachingResponse(req))
+                    AppResult.Success(TestFixtures.buildCoachingResponse(req))
                 }
             )
             val collectorJob = viewModel.uiState.onEach {}.launchIn(backgroundScope)

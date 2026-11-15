@@ -5,6 +5,7 @@ from app.engine.chef_knowledge import (
     ONION_LEARNER_ARCHETYPES,
     ChefKnowledgeGraph,
 )
+from app.schemas.domain import ExpertTeachingDecision, OmittedIssue
 
 
 def test_chef_knowledge_graph_contains_cross_dish_principles():
@@ -51,3 +52,32 @@ def test_three_onion_learner_archetypes_have_distinct_latent_causes():
     # Distinct root causes on Attempt 1 despite identical pale/under-sautéed visual failure
     assert m_learner.primary_principle_id != h_learner.primary_principle_id
     assert h_learner.primary_principle_id != p_learner.primary_principle_id
+
+
+def test_enforce_causal_restraint_upgrades_out_of_order_principle():
+    """If Gemini selects a Rank 4 principle while Rank 1 appears in candidates and shift is unverified, Rank 1 wins."""
+    decision = ExpertTeachingDecision(
+        candidate_issues_detected=[
+            "Uniform Cut Geometry & Pan Contact Surface",
+            "Surface Moisture Evaporation Gate (100°C Boiling vs. 140°C Browning)",
+        ],
+        selected_primary_issue="Uniform Cut Geometry & Pan Contact Surface",
+        causal_priority_rationale="Cut geometry seems uneven.",
+        deliberately_omitted_issues=[
+            OmittedIssue(
+                issue="Surface Moisture Evaporation Gate (100°C Boiling vs. 140°C Browning)",
+                suppression_reason="Omitted",
+            )
+        ],
+        target_chef_principle_id="cut_geometry_and_surface_area",
+    )
+    enforced = ChefKnowledgeGraph.enforce_causal_restraint(
+        decision=decision,
+        conceptual_shift_verified=False,
+    )
+    assert enforced.target_chef_principle_id == "moisture_evaporation_gate"
+    assert (
+        enforced.selected_primary_issue
+        == CHEF_PRINCIPLES_REGISTRY["moisture_evaporation_gate"].title
+    )
+    assert len(enforced.deliberately_omitted_issues) >= 1

@@ -28,6 +28,10 @@ class DisplayLabelFormatterTest {
             DisplayLabelFormatter.formatVisualRegime("PALE_STEAMING_OR_RAW")
         )
         assertEquals(
+            "Scorched / Carbonized",
+            DisplayLabelFormatter.formatVisualRegime("SCORCHED_CARBONIZED")
+        )
+        assertEquals(
             "Moisture Blindness",
             DisplayLabelFormatter.formatEvalCaseTitle("moisture_blindness_attempt_1")
         )
@@ -36,16 +40,20 @@ class DisplayLabelFormatterTest {
             DisplayLabelFormatter.formatEvalCaseTitle("negative_control_lucky_timer")
         )
         assertEquals(
-            "Vision + Sound Analysis",
-            DisplayLabelFormatter.formatModelSource("gemini-3-flash-preview + CV-Pixel-Analyzer + Audio-FFT")
+            "Lucky Timer Control",
+            DisplayLabelFormatter.formatEvalCaseTitle("negative_control_lucky_timer_attempt_2")
         )
         assertEquals(
-            "Vision + Sound Analysis",
-            DisplayLabelFormatter.formatModelSource("gpt-4o-vision + CV-Pixel + Audio-FFT")
+            "gemini-2.5-pro",
+            DisplayLabelFormatter.formatModelSource("  gemini-2.5-pro ")
         )
         assertEquals(
-            "Offline Simulation",
-            DisplayLabelFormatter.formatModelSource("Offline Demo Simulation (Backend Unreachable)")
+            "gemini-2.5-flash + cv_frame_metrics + librosa_audio",
+            DisplayLabelFormatter.formatModelSource("gemini-2.5-flash + cv_frame_metrics + librosa_audio")
+        )
+        assertEquals(
+            "Unknown",
+            DisplayLabelFormatter.formatModelSource("   ")
         )
         assertEquals(
             "Caught Perception Blindspot on pale onions",

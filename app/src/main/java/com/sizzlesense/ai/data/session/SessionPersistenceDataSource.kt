@@ -35,6 +35,8 @@ data class PersistedTapoCameraConfigDto(
 
 @Serializable
 data class PersistedSessionSnapshotDto(
+    @SerialName("schema_version")
+    val schemaVersion: Int = 1,
     @SerialName("backend_base_url")
     val backendBaseUrl: String = BuildConfig.DEFAULT_BACKEND_URL,
     @SerialName("tapo_config")
@@ -46,6 +48,8 @@ data class PersistedSessionSnapshotDto(
     @SerialName("learner_reflection_text")
     val learnerReflectionText: String =
         LearnerArchetypeOption.MOISTURE_BLINDNESS.presetReflections[1].orEmpty(),
+    @SerialName("attempt_reflections")
+    val attemptReflections: Map<Int, String> = emptyMap(),
     @SerialName("latest_coaching_response")
     val latestCoachingResponse: CognitiveCoachingResponseDto? = null,
     @SerialName("attempt_history")
@@ -112,10 +116,12 @@ class SessionPersistenceDataSource {
 
     companion object {
         const val DEFAULT_FILE_NAME = "sizzlesense_session_snapshot.json"
+        const val CURRENT_SCHEMA_VERSION = 2
     }
 }
 
 private fun SessionSnapshot.toPersistedDto(): PersistedSessionSnapshotDto = PersistedSessionSnapshotDto(
+    schemaVersion = SessionPersistenceDataSource.CURRENT_SCHEMA_VERSION,
     backendBaseUrl = backendBaseUrl,
     tapoConfig = PersistedTapoCameraConfigDto(
         ipAddress = tapoConfig.ipAddress,
@@ -128,6 +134,7 @@ private fun SessionSnapshot.toPersistedDto(): PersistedSessionSnapshotDto = Pers
     selectedArchetype = selectedArchetype.name,
     currentAttemptNumber = currentAttemptNumber,
     learnerReflectionText = learnerReflectionText,
+    attemptReflections = attemptReflections,
     latestCoachingResponse = latestCoachingResponse?.toDto(),
     attemptHistory = attemptHistory.mapValues { (_, response) -> response.toDto() },
     evalSuiteReport = evalSuiteReport?.toDto()
@@ -151,6 +158,10 @@ private fun PersistedSessionSnapshotDto.toDomain(): SessionSnapshot {
         tapoConfig.password
     }
 
+    val scrubLegacyCaches =
+        schemaVersion < SessionPersistenceDataSource.CURRENT_SCHEMA_VERSION ||
+            hasLegacyFallbackEntries()
+
     return SessionSnapshot(
         backendBaseUrl = AndroidDeviceProfile.preferredDefaultBackendUrl(backendBaseUrl),
         tapoConfig = TapoCameraConfig(
@@ -164,8 +175,21 @@ private fun PersistedSessionSnapshotDto.toDomain(): SessionSnapshot {
         selectedArchetype = archetype,
         currentAttemptNumber = currentAttemptNumber.coerceIn(1, 3),
         learnerReflectionText = learnerReflectionText,
-        latestCoachingResponse = latestCoachingResponse?.toDomain(),
-        attemptHistory = attemptHistory.mapValues { (_, dto) -> dto.toDomain() },
-        evalSuiteReport = evalSuiteReport?.toDomain()
+        attemptReflections = attemptReflections,
+        latestCoachingResponse = if (scrubLegacyCaches) null else latestCoachingResponse?.toDomain(),
+        attemptHistory = if (scrubLegacyCaches) {
+            emptyMap()
+        } else {
+            attemptHistory.mapValues { (_, dto) -> dto.toDomain() }
+        },
+        evalSuiteReport = if (scrubLegacyCaches) null else evalSuiteReport?.toDomain()
     )
 }
+
+private fun PersistedSessionSnapshotDto.hasLegacyFallbackEntries(): Boolean =
+    latestCoachingResponse?.isLegacyFallbackResponse() == true ||
+        attemptHistory.values.any { it.isLegacyFallbackResponse() }
+
+private fun CognitiveCoachingResponseDto.isLegacyFallbackResponse(): Boolean =
+    reasoningModelUsed.contains("Offline Demo", ignoreCase = true) ||
+        reasoningModelUsed.contains("Deterministic-Verified", ignoreCase = true)

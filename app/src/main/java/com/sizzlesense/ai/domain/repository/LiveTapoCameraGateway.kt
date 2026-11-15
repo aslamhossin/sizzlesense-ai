@@ -9,6 +9,8 @@ fun interface LiveTapoCameraGateway {
         baseUrl: String,
         tapoConfig: TapoCameraConfig,
         attemptNumber: Int,
-        reflectionText: String
+        reflectionText: String,
+        audioWavBase64: String?,
+        archetypeHint: String?
     ): AppResult<CognitiveCoachingResponse>
 }
