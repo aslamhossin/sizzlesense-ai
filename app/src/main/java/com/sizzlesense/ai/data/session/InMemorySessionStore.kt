@@ -1,6 +1,7 @@
 package com.sizzlesense.ai.data.session
 
 import com.sizzlesense.ai.BuildConfig
+import com.sizzlesense.ai.data.remote.AndroidDeviceProfile
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import com.sizzlesense.ai.domain.model.coaching.CognitiveCoachingResponse
 import com.sizzlesense.ai.domain.model.eval.EvalSuiteReport
@@ -132,7 +133,7 @@ class InMemorySessionStore : SessionStore {
 
     companion object {
         private fun defaultSnapshot(): SessionSnapshot = SessionSnapshot(
-            backendBaseUrl = BuildConfig.DEFAULT_BACKEND_URL,
+            backendBaseUrl = AndroidDeviceProfile.preferredDefaultBackendUrl(),
             tapoConfig = TapoCameraConfig(
                 ipAddress = BuildConfig.DEFAULT_TAPO_IP,
                 username = BuildConfig.DEFAULT_TAPO_USERNAME,

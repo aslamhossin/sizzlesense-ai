@@ -29,34 +29,73 @@ data class ResolvedRemoteResult<out T>(
  * preserving structured [AppError] classification (`HttpError`, `SerializationError`, `NetworkUnavailable`).
  */
 @Singleton
-class FailoverJsonHttpClient @Inject constructor(
+class FailoverJsonHttpClient internal constructor(
     private val apiService: SizzleSenseApiService,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    private val ioDispatcher: CoroutineDispatcher,
+    private val lanBackendScanner: LanBackendScanner,
+    private val isPhysicalDevice: () -> Boolean
 ) {
+
+    @Inject
+    constructor(
+        apiService: SizzleSenseApiService,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ) : this(
+        apiService = apiService,
+        ioDispatcher = ioDispatcher,
+        lanBackendScanner = SocketLanBackendScanner(ioDispatcher),
+        isPhysicalDevice = { AndroidDeviceProfile.isPhysicalDevice() }
+    )
 
     fun resolveCandidateEndpoints(primaryBaseUrl: String): List<String> {
         val workstationLanUrl = BuildConfig.DEFAULT_LAN_BACKEND_URL
             .trim()
             .trimEnd('/')
             .ifBlank { MAC_WORKSTATION_LAN_URL }
-        return listOf(
-            primaryBaseUrl.trim().trimEnd('/'),
-            EMULATOR_HOST_URL,
-            workstationLanUrl,
-            LOCALHOST_URL
-        ).filter { it.isNotBlank() }.distinct()
+        val normalizedPrimary = primaryBaseUrl.trim().trimEnd('/')
+        val ordered = if (isPhysicalDevice()) {
+            // Avoid wasting socket connect timeouts on 10.0.2.2 when running on a physical device.
+            listOf(
+                normalizedPrimary.takeUnless { it == EMULATOR_HOST_URL }.orEmpty(),
+                workstationLanUrl,
+                LOCALHOST_URL
+            )
+        } else {
+            listOf(
+                normalizedPrimary,
+                EMULATOR_HOST_URL,
+                workstationLanUrl,
+                LOCALHOST_URL
+            )
+        }
+        return ordered.filter { it.isNotBlank() }.distinct()
     }
 
     suspend fun discoverCameraAndServerWithFailover(
         primaryBaseUrl: String,
         preferredIp: String
-    ): AppResult<ResolvedRemoteResult<CameraDiscoveryResponseDto>> =
-        executeWithFailoverAndResolvedUrl(primaryBaseUrl) { targetUrl ->
+    ): AppResult<ResolvedRemoteResult<CameraDiscoveryResponseDto>> {
+        val queryIp = preferredIp.trim().ifBlank { null }
+        val call: suspend (String) -> CameraDiscoveryResponseDto = { targetUrl ->
             apiService.discoverCameraAndServer(
                 targetBaseUrl = targetUrl,
-                preferredIp = preferredIp.trim().ifBlank { null }
+                preferredIp = queryIp
             )
         }
+        val initialCandidates = resolveCandidateEndpoints(primaryBaseUrl)
+        val initialResult = executeWithCandidates(initialCandidates, call)
+        if (initialResult is AppResult.Success) return initialResult
+        val failure = (initialResult as AppResult.Failure).error
+        if (failure !is AppError.NetworkUnavailable) return initialResult
+
+        val triedSet = initialCandidates.toSet()
+        val lanCandidates = lanBackendScanner
+            .scanPort8000OnLocalSubnet()
+            .filterNot { it in triedSet }
+        if (lanCandidates.isEmpty()) return initialResult
+
+        return executeWithCandidates(lanCandidates, call)
+    }
 
     suspend fun analyzeSessionWithFailover(
         primaryBaseUrl: String,
@@ -95,8 +134,13 @@ class FailoverJsonHttpClient @Inject constructor(
     suspend fun <RES : Any> executeWithFailoverAndResolvedUrl(
         primaryBaseUrl: String,
         call: suspend (targetBaseUrl: String) -> RES
+    ): AppResult<ResolvedRemoteResult<RES>> =
+        executeWithCandidates(resolveCandidateEndpoints(primaryBaseUrl), call)
+
+    private suspend fun <RES : Any> executeWithCandidates(
+        candidates: List<String>,
+        call: suspend (targetBaseUrl: String) -> RES
     ): AppResult<ResolvedRemoteResult<RES>> = safeApiCall(ioDispatcher) {
-        val candidates = resolveCandidateEndpoints(primaryBaseUrl)
         var lastError: AppError = AppError.NetworkUnavailable("No candidate endpoints configured")
 
         for (rootUrl in candidates) {

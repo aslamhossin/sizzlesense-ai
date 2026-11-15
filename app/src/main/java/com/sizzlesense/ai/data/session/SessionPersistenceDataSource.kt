@@ -2,6 +2,7 @@ package com.sizzlesense.ai.data.session
 
 import android.content.Context
 import com.sizzlesense.ai.BuildConfig
+import com.sizzlesense.ai.data.remote.AndroidDeviceProfile
 import com.sizzlesense.ai.data.remote.dto.coaching.CognitiveCoachingResponseDto
 import com.sizzlesense.ai.data.remote.dto.coaching.toDomain
 import com.sizzlesense.ai.data.remote.dto.coaching.toDto
@@ -151,7 +152,7 @@ private fun PersistedSessionSnapshotDto.toDomain(): SessionSnapshot {
     }
 
     return SessionSnapshot(
-        backendBaseUrl = backendBaseUrl,
+        backendBaseUrl = AndroidDeviceProfile.preferredDefaultBackendUrl(backendBaseUrl),
         tapoConfig = TapoCameraConfig(
             ipAddress = tapoConfig.ipAddress.ifBlank { BuildConfig.DEFAULT_TAPO_IP },
             username = resolvedUsername,

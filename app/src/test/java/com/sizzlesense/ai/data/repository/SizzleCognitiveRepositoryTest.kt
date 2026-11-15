@@ -6,6 +6,7 @@ import com.sizzlesense.ai.core.result.AppResult
 import com.sizzlesense.ai.data.local.LocalFallbackCognitiveDataSource
 import com.sizzlesense.ai.data.remote.DynamicBaseUrlInterceptor
 import com.sizzlesense.ai.data.remote.FailoverJsonHttpClient
+import com.sizzlesense.ai.data.remote.LanBackendScanner
 import com.sizzlesense.ai.di.module.NetworkModule
 import com.sizzlesense.ai.domain.model.camera.TapoCameraConfig
 import com.sizzlesense.ai.domain.model.session.SessionAnalyzeRequest
@@ -20,6 +21,7 @@ import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -31,7 +33,11 @@ class SizzleCognitiveRepositoryTest {
     private val fallbackDataSource = LocalFallbackCognitiveDataSource()
     private val testDispatcher = UnconfinedTestDispatcher()
 
-    private fun buildRepositoryWithInterceptor(interceptor: Interceptor): SizzleCognitiveRepository {
+    private fun buildRepositoryWithInterceptor(
+        lanBackendScanner: LanBackendScanner = LanBackendScanner { emptyList() },
+        isPhysicalDevice: () -> Boolean = { false },
+        interceptor: Interceptor
+    ): SizzleCognitiveRepository {
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(DynamicBaseUrlInterceptor())
             .addInterceptor(interceptor)
@@ -42,7 +48,9 @@ class SizzleCognitiveRepositoryTest {
         )
         val remoteClient = FailoverJsonHttpClient(
             apiService = apiService,
-            ioDispatcher = testDispatcher
+            ioDispatcher = testDispatcher,
+            lanBackendScanner = lanBackendScanner,
+            isPhysicalDevice = isPhysicalDevice
         )
         return SizzleCognitiveRepository(
             remoteClient = remoteClient,
@@ -269,6 +277,53 @@ class SizzleCognitiveRepositoryTest {
             assertEquals("192.168.11.14", info.cameraIp)
             assertTrue(info.cameraReachable)
             assertEquals("lan_scan", info.discoverySource)
+        }
+    }
+
+    @Test
+    fun physicalWirelessDevice_skipsEmulatorHostAndDiscoversLanBackendOnSubnetScan() {
+        runTest {
+            val visitedHosts = mutableListOf<String>()
+            val repository = buildRepositoryWithInterceptor(
+                lanBackendScanner = LanBackendScanner { listOf("http://192.168.11.42:8000") },
+                isPhysicalDevice = { true }
+            ) { chain ->
+                val req = chain.request()
+                visitedHosts.add(req.url.host)
+                if (req.url.host != "192.168.11.42") {
+                    throw IOException("Cached host unreachable")
+                }
+                Response.Builder()
+                    .request(req)
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body(
+                        """
+                        {
+                          "backend_url": "http://192.168.11.42:8000",
+                          "camera_ip": "192.168.11.14",
+                          "camera_port": 554,
+                          "camera_reachable": true,
+                          "has_backend_credentials": true,
+                          "discovery_source": "lan_scan"
+                        }
+                        """.trimIndent().toResponseBody("application/json".toMediaType())
+                    )
+                    .build()
+            }
+
+            val result = repository.discoverCameraAndServer(
+                baseUrl = "http://10.0.2.2:8000",
+                preferredCameraIp = "192.168.11.16"
+            )
+
+            assertTrue(result is AppResult.Success)
+            assertFalse(visitedHosts.contains("10.0.2.2"))
+            assertEquals("192.168.11.42", visitedHosts.last())
+            val info = (result as AppResult.Success).data
+            assertEquals("http://192.168.11.42:8000", info.resolvedBackendUrl)
+            assertEquals("192.168.11.14", info.cameraIp)
         }
     }
 }
